@@ -51,6 +51,8 @@ tr.row{cursor:pointer}tr.row:hover{background:rgba(0,120,181,.05)}td b{color:var
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .sug{position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 10px 24px rgba(10,26,42,.14);z-index:5;max-height:260px;overflow:auto}.sug div{padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--line);font-size:13px}.sug div:hover{background:rgba(0,120,181,.06)}.sug b{color:var(--ink)}
 .cats label{margin-right:12px;font-size:13px}
+.prt{background:#fff;border-color:var(--line);color:var(--sil);padding:3px 8px;min-height:30px}.prt svg{width:16px;height:16px;fill:currentColor}.prt.nova{background:var(--ok);border-color:var(--ok);color:#fff}.prt.nova:hover{filter:brightness(1.08)}
+.ins table{font-size:12px}.ins td,.ins th{padding:5px 8px}.ins .sec-t{margin-top:14px}
 </style>
 </head>
 <body>
@@ -130,7 +132,7 @@ async function enter(){
 function renderShell(){
   el('app').innerHTML='<header class="topbar"><div class="wrap">'+brand()+'<nav>'+
   '<span class="grp"><button id="nv-dash" onclick="go(&quot;dash&quot;)">Painel ▾</button><span class="sub"><button id="nv-dash2" onclick="go(&quot;dash&quot;)">Resumo</button><button id="nv-orcamento" onclick="go(&quot;orcamento&quot;)">Orçamentos</button><button id="nv-contato" onclick="go(&quot;contato&quot;)">Contatos</button></span></span><button id="nv-chamado" onclick="go(&quot;chamado&quot;)">Ordens de Serviço</button><span class="grp"><button id="nv-fin" onclick="A.goFin(&quot;resumo&quot;)">Financeiro ▾</button><span class="sub"><button id="nv-fin-resumo" onclick="A.goFin(&quot;resumo&quot;)">Painel financeiro</button><button id="nv-fin-compras" onclick="A.goFin(&quot;compras&quot;)">Compras</button><button id="nv-fin-receber" onclick="A.goFin(&quot;receber&quot;)">Contas a Receber</button><button id="nv-fin-pagar" onclick="A.goFin(&quot;pagar&quot;)">Contas a Pagar</button></span></span><span class="grp"><button id="nv-cad" onclick="go(&quot;clientes&quot;)">Cadastro ▾</button><span class="sub"><button id="nv-clientes" onclick="go(&quot;clientes&quot;)">Clientes</button><button id="nv-funcionarios" onclick="go(&quot;funcionarios&quot;)">Funcionários</button></span></span><button id="nv-usuarios" onclick="go(&quot;usuarios&quot;)">Usuários</button></nav>'+
-  '<span class="who">'+esc(S.perfil.nome||S.perfil.email)+' · '+esc(S.perfil.papel)+' · v4.9</span><button class="btn sec sm" onclick="A.sair()">Sair</button></div></header><main id="main"></main>';
+  '<span class="who">'+esc(S.perfil.nome||S.perfil.email)+' · '+esc(S.perfil.papel)+' · v5.0</span><button class="btn sec sm" onclick="A.sair()">Sair</button></div></header><main id="main"></main>';
 }
 function go(v){S.view=v;document.querySelectorAll('.topbar nav button').forEach(function(b){b.classList.toggle('on',b.id==='nv-'+v||(b.id==='nv-dash'&&(v==='dash'||v==='orcamento'||v==='contato'))||(b.id==='nv-dash2'&&v==='dash')||(v==='fin'&&b.id==='nv-fin-'+S.finTab)||(b.id==='nv-cad'&&(v==='clientes'||v==='funcionarios')));});
   if(v==='dash')loadDash().catch(fail);else if(v==='usuarios')loadUsuarios().catch(fail);else if(v==='fin')loadFin().catch(fail);else if(v==='clientes')loadClientes().catch(fail);else if(v==='funcionarios')loadFuncionarios().catch(fail);else{S.tipo=v;loadLista().catch(fail);}}
@@ -161,7 +163,7 @@ function tabela(L){
   if(!L.length)return '<div class="empty">Nenhum registro.</div>';
   var h='<table><tr><th>Recebido</th><th>Nome</th><th>Divisão</th><th>Perfil</th><th>Cidade</th><th>Status</th><th>Responsável</th><th></th></tr>';
   L.forEach(function(l){var st=l.status==='novo'&&Date.now()-new Date(l.created_at)>864e5;
-    h+='<tr class="row" onclick="A.abrir(&quot;'+l.id+'&quot;)"><td'+(st?' class="stale"':'')+'>'+esc(ago(l.created_at))+'<div class="muted">'+esc(dt(l.created_at))+'</div></td><td>'+(l.tipo==='chamado'?'<span class="chip seguranca">'+osn(l.numero_os)+'</span> ':'')+'<b>'+esc(l.nome)+'</b><div class="muted">'+esc(fone(l.whatsapp))+(l.tipo!=='orcamento'&&l.tipo!=='chamado'?' · '+esc(TIPO[l.tipo]):'')+'</div></td><td>'+chip(l.divisao,DIV[l.divisao]||l.divisao)+'</td><td>'+esc(PERF[l.perfil]||'—')+'</td><td>'+esc(l.cidade||'—')+'</td><td>'+chip(l.status,stLabel(l))+(l.prioridade&&l.prioridade!=='normal'?' '+chip(l.prioridade,PRI[l.prioridade]):'')+'</td><td>'+esc((l.responsavel||'—').split('@')[0])+(l.tipo==='chamado'&&S.equipeMap[l.id]?'<div class="muted">'+esc(S.equipeMap[l.id].equipe)+'</div>':'')+'</td><td><a class="btn wa sm" href="'+waLink(l)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">WhatsApp</a></td></tr>';});
+    h+='<tr class="row" onclick="A.abrir(&quot;'+l.id+'&quot;)"><td'+(st?' class="stale"':'')+'>'+esc(ago(l.created_at))+'<div class="muted">'+esc(dt(l.created_at))+'</div></td><td>'+(l.tipo==='chamado'?'<span class="chip seguranca">'+osn(l.numero_os)+'</span> ':'')+'<b>'+esc(l.nome)+'</b><div class="muted">'+esc(fone(l.whatsapp))+(l.tipo!=='orcamento'&&l.tipo!=='chamado'?' · '+esc(TIPO[l.tipo]):'')+'</div></td><td>'+chip(l.divisao,DIV[l.divisao]||l.divisao)+'</td><td>'+esc(PERF[l.perfil]||'—')+'</td><td>'+esc(l.cidade||'—')+'</td><td>'+chip(l.status,stLabel(l))+(l.prioridade&&l.prioridade!=='normal'?' '+chip(l.prioridade,PRI[l.prioridade]):'')+'</td><td>'+esc((l.responsavel||'—').split('@')[0])+(l.tipo==='chamado'&&S.equipeMap[l.id]?'<div class="muted">'+esc(S.equipeMap[l.id].equipe)+'</div>':'')+'</td><td style="white-space:nowrap">'+(l.tipo==='chamado'?prtBtn(l)+' ':'')+'<a class="btn wa sm" href="'+waLink(l)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">WhatsApp</a></td></tr>';});
   return h+'</table>';
 }
 
@@ -222,7 +224,7 @@ async function abrir(id){
 function renderDetalhe(){
   var l=S.lead;var stmap=l.tipo==='chamado'?ST_CH:ST;var ch=l.tipo==='chamado';
   var h='<h2>'+(ch?osn(l.numero_os)+' · ':'')+esc(l.nome)+' '+chip(l.divisao,DIV[l.divisao]||l.divisao)+' '+chip(l.status,stLabel(l))+'</h2><p class="muted">'+esc(TIPO[l.tipo])+' · '+(l.pagina_origem==='mesa'?'aberto na Mesa por '+esc((l.criado_por||'').split('@')[0]):'recebido pelo site')+' em '+esc(dt(l.created_at))+' · '+esc(PERF[l.perfil]||'')+'</p>'+
-  '<div class="det"><div><dl class="kv"><dt>WhatsApp</dt><dd><b>'+esc(fone(l.whatsapp))+'</b> <a class="btn wa sm" href="'+waLink(l)+'" target="_blank" rel="noopener" onclick="A.contato()">Abrir WhatsApp</a></dd>'+
+  (ch?printBar(l):'')+'<div class="det"><div><dl class="kv"><dt>WhatsApp</dt><dd><b>'+esc(fone(l.whatsapp))+'</b> <a class="btn wa sm" href="'+waLink(l)+'" target="_blank" rel="noopener" onclick="A.contato()">Abrir WhatsApp</a></dd>'+
   (l.cliente_id?'<dt>Cadastro</dt><dd><a href="#" onclick="A.fechar();A.abrirCliente(&quot;'+l.cliente_id+'&quot;);return false">Abrir cadastro do cliente</a></dd>':'')+'<dt>E-mail</dt><dd>'+(l.email?'<a href="mailto:'+esc(l.email)+'">'+esc(l.email)+'</a>':'—')+'</dd><dt>Cidade</dt><dd>'+esc(l.cidade||'—')+'</dd>'+(l.endereco?'<dt>Endereço</dt><dd>'+esc(l.endereco)+'</dd>':'')+detLista(l.detalhes)+
   '<dt>Origem</dt><dd>'+esc(l.pagina_origem||'—')+(l.utm_source?' · '+esc(l.utm_source)+'/'+esc(l.utm_medium||'')+'/'+esc(l.utm_campaign||''):'')+'</dd><dt>Último contato</dt><dd>'+esc(dt(l.ultimo_contato_em))+'</dd></dl>';
   if(ch){
@@ -250,6 +252,71 @@ function renderDetalhe(){
   el('d-st').addEventListener('change',function(){el('d-mot-w').hidden=this.value!=='descartado';});
 }
 function eventosHtml(E){if(!E.length)return '<p class="muted">Sem registros ainda.</p>';return E.map(function(e){return '<div class="ev"><div class="t">'+esc(dt(e.created_at))+' · '+esc((e.autor||'').split('@')[0])+(e.tipo?' · '+esc(e.tipo):'')+'</div><p>'+esc(e.texto)+'</p></div>';}).join('');}
+
+// ---------- IMPRESSÃO DA OS / DADOS DE INSTALAÇÃO ----------
+var PRT_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 7H6V3h12v4zm1 2H5a3 3 0 0 0-3 3v5h4v4h12v-4h4v-5a3 3 0 0 0-3-3zm-3 10H8v-5h8v5zm3-6a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>';
+function prtBtn(l){return '<button class="btn sm prt'+(l.impresso_em?'':' nova')+'" title="'+(l.impresso_em?'Impressa '+(l.impressoes||1)+'x · última em '+esc(dt(l.impresso_em))+' por '+esc((l.impresso_por||'').split('@')[0]):'Nunca impressa — clique para imprimir')+'" onclick="event.stopPropagation();A.imprimirOS(&quot;'+l.id+'&quot;)">'+PRT_SVG+'</button>';}
+function printBar(l){return '<div class="acts" style="margin:0 0 12px;align-items:center">'+prtBtn(l)+(l.impresso_em?'<span class="muted">Impressa '+(l.impressoes||1)+'x · última em '+esc(dt(l.impresso_em))+' por '+esc((l.impresso_por||'').split('@')[0])+'</span>':'<span class="chip concluido">Nunca impressa</span>')+'</div>';}
+var DIAS={seg:'Seg',ter:'Ter',qua:'Qua',qui:'Qui',sex:'Sex',sab:'Sáb',dom:'Dom',fer:'Fer'};
+function horariosTxt(h){if(!h||typeof h!=='object')return '';var runs=[];Object.keys(DIAS).forEach(function(k){var v=h[k];if(!v)return;var r=runs[runs.length-1];if(r&&r.v===v)r.d.push(DIAS[k]);else runs.push({v:v,d:[DIAS[k]]});});
+  return runs.map(function(r){return (r.d.length>2?r.d[0]+' a '+r.d[r.d.length-1]:r.d.join('/'))+' '+r.v;}).join(' · ');}
+function instalacaoHtml(c){var h='<div class="ins">';
+  if(c.horarios&&Object.keys(c.horarios).length)h+='<p class="note" style="margin-top:8px"><b>Alarme desarmado:</b> '+esc(horariosTxt(c.horarios))+'</p>';
+  var K=c.contatos||[],Z=c.setores||[],U=c.usuarios||[];
+  if(K.length)h+='<div class="sec-t">Contatos para providências <span class="muted">'+K.length+'</span></div><table><tr><th>Nome</th><th>Telefone</th><th>Celular</th><th>Local</th><th>Obs.</th></tr>'+K.map(function(k){return '<tr><td><b>'+esc(k.nome)+'</b></td><td>'+esc(k.telefone||'—')+'</td><td>'+esc(k.celular||'—')+'</td><td>'+esc(k.local||'—')+'</td><td>'+esc(k.obs||'')+'</td></tr>';}).join('')+'</table>';
+  if(Z.length)h+='<div class="sec-t">Setores (zonas) <span class="muted">'+Z.length+'</span></div><table><tr><th>Nº</th><th>Descrição</th><th>Equipamento</th></tr>'+Z.map(function(z){return '<tr><td>'+z.n+'</td><td>'+esc(z.descricao)+'</td><td>'+esc(z.equipamento||'—')+'</td></tr>';}).join('')+'</table>';
+  if(U.length)h+='<div class="sec-t">Usuários do sistema <span class="muted">'+U.length+'</span></div><table><tr><th>Nº</th><th>Nome</th><th>Telefone / celular</th><th>Acesso</th><th>Obs.</th></tr>'+U.map(function(u){return '<tr><td>'+u.n+'</td><td><b>'+esc(u.nome)+'</b></td><td>'+esc([u.telefone,u.celular].filter(Boolean).join(' / ')||'—')+'</td><td class="muted">'+esc(horariosTxt(u.horarios))+'</td><td>'+esc(u.obs||'')+'</td></tr>';}).join('')+'</table>';
+  if(K.length||Z.length||U.length)h+='<p class="note">Dados importados do sistema de monitoramento. Senhas, palavras-chave e contrassenhas não são guardadas na Mesa.</p>';
+  return h+'</div>';}
+function osPrintHtml(l,c,equipe){c=c||{};var d=l.detalhes||{};var logo=new URL('img/logo-horizontal.png',location.href).href;
+  function f(lb,v,w){v=(v==null||v==='')?'—':v;return '<div'+(w?' class="w"':'')+'><b>'+lb+':</b> '+esc(String(v))+'</div>';}
+  var tels=[fone(l.whatsapp),c.telefones,c.tel_sim].filter(Boolean).filter(function(x,i,a){return a.indexOf(x)===i;}).join(' · ');
+  var end=[c.endereco||l.endereco,c.numero].filter(Boolean).join(', ')+(c.complemento?' - '+c.complemento:'');
+  var outros=Object.keys(d).filter(function(k){return k!=='problema'&&d[k]!==''&&d[k]!==null;}).map(function(k){return (DET_LBL[k]||k)+': '+(Array.isArray(d[k])?d[k].join(', '):d[k]);}).join(' · ');
+  var Z=c.setores||[],U=c.usuarios||[],K=c.contatos||[];
+  var h='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+esc(osn(l.numero_os))+' - '+esc(l.nome)+'</title><style>'+
+  '@page{size:A4;margin:8mm 10mm}body{font-family:Arial,Helvetica,sans-serif;font-size:9.5pt;color:#111;margin:0}'+
+  '.hd{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #0078B5;padding-bottom:4px;margin-bottom:6px}.hd img{height:40px}.hd .co{font-size:8pt;color:#444;margin-top:3px}'+
+  '.hd .os{text-align:right;white-space:nowrap;padding-left:10px}.hd .os b{font-size:16pt;color:#0A1A2A;display:block;line-height:1.1}.hd .os span{font-size:8.5pt;color:#444}'+
+  '.sec{border:1px solid #bbb;border-radius:3px;margin-bottom:5px;page-break-inside:avoid}.sec h3{margin:0;background:#E3F1F9;color:#0A1A2A;font-size:8.5pt;padding:2px 6px;border-bottom:1px solid #bbb;text-transform:uppercase;letter-spacing:.04em}'+
+  '.g{display:grid;grid-template-columns:1fr 1fr;gap:1px 10px;padding:3px 6px}.g.c3{grid-template-columns:1fr 1fr 1fr}.g div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.g .w{grid-column:1/-1;white-space:normal}.g b{color:#444;font-weight:600;font-size:8pt}'+
+  '.lst{padding:3px 6px;columns:3;column-gap:10px;font-size:8.5pt}.lst div{break-inside:avoid;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lst.c2{columns:2}.lst.c4{columns:4}'+
+  '.prob{padding:4px 6px;min-height:34px;white-space:pre-wrap}.chk{padding:4px 6px}.chk span{display:inline-block;margin-right:16px}.bx{display:inline-block;width:11px;height:11px;border:1.2px solid #333;vertical-align:-1px;margin-right:4px;border-radius:2px}'+
+  '.ln{border-bottom:1px solid #999;height:15px;margin:0 6px}.sig{display:grid;grid-template-columns:1.2fr .8fr .8fr 1.2fr;gap:14px;padding:18px 6px 4px}.sig div{border-top:1px solid #333;text-align:center;font-size:8pt;padding-top:2px}'+
+  '.ft{font-size:7.5pt;color:#666;text-align:center;margin-top:4px}'+
+  '</style></head><body>'+
+  '<div class="hd"><div><img src="'+logo+'" alt="Insiel"><div class="co">Insiel Tecnologia Eletrônica Ltda. · Segurança eletrônica · Energia solar · Tecnologia · Trânsito<br>Campina Grande - PB · WhatsApp (83) 98725-9010 · www.insiel.com.br</div></div>'+
+  '<div class="os"><b>ORDEM DE SERVIÇO Nº '+(l.numero_os?String(l.numero_os).padStart(4,'0'):'—')+'</b><span>Aberta em '+esc(dt(l.created_at))+' · '+esc(ST_CH[l.status]||l.status)+(l.prioridade&&l.prioridade!=='normal'?' · Prioridade '+esc(PRI[l.prioridade]||l.prioridade):'')+'</span></div></div>'+
+  '<div class="sec"><h3>Cliente</h3><div class="g">'+
+  '<div class="w"><b>Cliente:</b> '+(c.codigo_monitoramento?esc(c.codigo_monitoramento)+' - ':'')+'<strong>'+esc(c.nome||l.nome)+'</strong>'+(c.nome_fantasia?' ('+esc(c.nome_fantasia)+')':'')+(c.tipo?' · '+esc(c.tipo):'')+(c.categorias?' · '+c.categorias.map(function(k){return esc(CAT[k]||k);}).join(', '):'')+'</div>'+
+  f('Endereço',end,true)+f('Bairro',c.bairro)+f('Cidade',(c.cidade||l.cidade||'')+(c.uf?' - '+c.uf:''))+f('CEP',c.cep)+f('CPF/CNPJ',c.cpf_cnpj)+f('Telefones',tels)+f('E-mail',c.email||l.email)+f('Contato',c.contato)+f('Referência',c.referencia,true)+
+  '</div></div>';
+  if(l.cliente_id)h+='<div class="sec"><h3>Instalação monitorada</h3><div class="g c3">'+f('Central',c.central)+f('Conj. ocorrências',c.conjunto_ocorrencias)+f('Cadastro',c.data_cadastro_origem?dd(c.data_cadastro_origem):'')+f('SIM 1',[c.sim_card,c.tel_sim].filter(Boolean).join(' / '))+f('SIM 2',[c.sim_card2,c.tel_sim2].filter(Boolean).join(' / '))+f('E-mail/Mobile',(c.envio_email||'—')+' / '+(c.mensagem_mobile||'—'))+f('Acesso ao cliente (alarme desarmado)',horariosTxt(c.horarios),true)+(c.detalhes?f('Detalhes',c.detalhes,true):'')+'</div></div>';
+  h+='<div class="sec"><h3>Serviço</h3><div class="g c3">'+f('Sistema',DIV[l.divisao]||l.divisao)+f('Perfil',PERF[l.perfil]||l.perfil)+f('Requerente',l.pagina_origem==='mesa'?(l.criado_por||'').split('@')[0]:'Site / '+(l.pagina_origem||''))+f('Plantonista',(l.responsavel||'').split('@')[0])+f('Visita',l.data_visita?dd(l.data_visita):'')+f('Equipe técnica',equipe)+'</div>'+
+  '<div class="prob"><b style="font-size:8pt;color:#444">PROBLEMA / SERVIÇO A EXECUTAR:</b> '+esc(d.problema||'')+(outros?'<br><span style="font-size:8.5pt;color:#444">'+esc(outros)+'</span>':'')+(l.observacoes?'<br><b style="font-size:8pt;color:#444">OBSERVAÇÃO:</b> '+esc(l.observacoes):'')+'</div></div>';
+  if(Z.length)h+='<div class="sec"><h3>Setores ('+Z.length+')</h3><div class="lst'+(Z.length>24?' c4':'')+'">'+Z.map(function(z){return '<div><b>'+String(z.n).padStart(2,'0')+'</b> '+esc(z.descricao)+(z.equipamento?' <i>'+esc(z.equipamento)+'</i>':'')+'</div>';}).join('')+'</div></div>';
+  if(U.length)h+='<div class="sec"><h3>Usuários ('+U.length+')</h3><div class="lst'+(U.length>12?'':' c2')+'">'+U.map(function(u){return '<div><b>'+String(u.n).padStart(2,'0')+'</b> '+esc(u.nome)+(u.celular||u.telefone?' · '+esc(u.celular||u.telefone):'')+'</div>';}).join('')+'</div></div>';
+  if(K.length)h+='<div class="sec"><h3>Contatos para providências ('+K.length+')</h3><div class="lst">'+K.map(function(k){return '<div>'+esc(k.nome)+(k.telefone||k.celular?' · '+esc(k.telefone||k.celular):'')+'</div>';}).join('')+'</div></div>';
+  h+='<div class="sec"><h3>Execução</h3><div class="chk"><b style="font-size:8pt;color:#444">TESTES REALIZADOS:</b> <span><i class="bx"></i>Comunicação</span><span><i class="bx"></i>Setores</span><span><i class="bx"></i>Sirenes</span><span><i class="bx"></i>Bateria</span><span><i class="bx"></i>Carregador</span><span><i class="bx"></i>Câmeras</span><span><i class="bx"></i>Cerca</span>'+
+  '</div><div class="chk" style="padding-top:0"><b style="font-size:8pt;color:#444">TIPO:</b> <span><i class="bx"></i>Manutenção</span><span><i class="bx"></i>Venda</span><span><i class="bx"></i>Garantia</span><span><i class="bx"></i>Instalação</span></div>'+
+  '<div class="chk" style="padding-top:0;font-size:8.5pt">Eu, ______________________________________________, não autorizei o técnico a testar o sistema completamente.</div>'+
+  '<div class="chk" style="padding-top:0"><b style="font-size:8pt;color:#444">RESULTADO / MATERIAL UTILIZADO:</b></div><div class="ln"></div><div class="ln"></div><div class="ln"></div><div class="ln"></div>'+
+  '<div class="sig"><div>Técnico responsável</div><div>Data: ____/____/______</div><div>Hora: ____:____</div><div>De acordo: '+esc(c.nome||l.nome)+'</div></div></div>'+
+  '<div class="ft">'+esc(osn(l.numero_os))+' · emitida em '+esc(dt(new Date().toISOString()))+' por '+esc((S.perfil&&S.perfil.email||'').split('@')[0])+' · Mesa de Comando Insiel</div>'+
+  '<script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script></body></html>';
+  return h;}
+async function imprimirOS(id,w){
+  var r=await sb.from('leads').select('*').eq('id',id).single();if(r.error)throw r.error;var l=r.data;
+  var c=null;if(l.cliente_id){var rc=await sb.from('clientes').select('*').eq('id',l.cliente_id).maybeSingle();c=rc.data||null;}
+  var eq=await sb.from('v_os_equipe').select('equipe').eq('lead_id',id).maybeSingle();var equipe=(eq.data&&eq.data.equipe)||'';
+  w.document.open();w.document.write(osPrintHtml(l,c,equipe));w.document.close();
+  var n=(l.impressoes||0)+1,agora=new Date().toISOString();
+  var u=await sb.from('leads').update({impresso_em:agora,impresso_por:S.perfil.email,impressoes:n}).eq('id',id);if(u.error)throw u.error;
+  await sb.from('lead_eventos').insert({lead_id:id,tipo:'sistema',texto:'OS impressa ('+n+'ª vez)'});
+  (S.leads||[]).forEach(function(x){if(x.id===id){x.impresso_em=agora;x.impresso_por=S.perfil.email;x.impressoes=n;}});
+  if(S.view==='chamado'&&S.tipo==='chamado')renderLista();
+  if(S.lead&&S.lead.id===id&&el('modalbg')){S.lead.impresso_em=agora;S.lead.impresso_por=S.perfil.email;S.lead.impressoes=n;abrir(id).catch(fail);}
+}
 
 // ---------- FINANCEIRO ----------
 async function loadFin(){
@@ -466,11 +533,10 @@ function formCliente(c){
   '<div class="fld"><label>Tipo</label>'+sel('x-tipo',[['',''],['COMÉRCIO','Comércio'],['RESIDÊNCIA','Residência'],['INDÚSTRIA','Indústria'],['CONDOMÍNIO','Condomínio'],['COOPERATIVA','Cooperativa'],['ÓRGÃO PÚBLICO','Órgão público'],['OUTRO','Outro']],c.tipo||'',dis)+'</div>'+
   '<div class="fld"><label>Pessoa</label>'+sel('x-pessoa',[['',''],['PF','Física'],['PJ','Jurídica']],c.pessoa||'',dis)+'</div>'+fld('x-doc','CPF / CNPJ',c.cpf_cnpj)+fld('x-rgie','RG / Inscrição estadual',c.rg_ie)+
   fld('x-tel','Telefones',c.telefones)+fld('x-email','E-mail',c.email,{type:'email'})+fld('x-contato','Pessoa de contato',c.contato)+fld('x-rel','Relatório por e-mail',c.relatorio_email)+
-  fld('x-end','Endereço',c.endereco,{full:true})+fld('x-num','Número',c.numero)+fld('x-bairro','Bairro',c.bairro)+fld('x-cep','CEP',c.cep)+fld('x-cid','Cidade',c.cidade)+fld('x-uf','UF',c.uf)+
-  fld('x-sim','SIM card 1',c.sim_card)+fld('x-telsim','Telefone SIM 1',c.tel_sim)+fld('x-sim2','SIM card 2',c.sim_card2)+fld('x-telsim2','Telefone SIM 2',c.tel_sim2)+
+  fld('x-end','Endereço',c.endereco,{full:true})+fld('x-num','Número',c.numero)+fld('x-compl','Complemento',c.complemento)+fld('x-bairro','Bairro',c.bairro)+fld('x-cep','CEP',c.cep)+fld('x-cid','Cidade',c.cidade)+fld('x-uf','UF',c.uf)+fld('x-ref','Ponto de referência',c.referencia,{full:true})+
+  fld('x-central','Central de alarme',c.central)+fld('x-conj','Conjunto de ocorrências',c.conjunto_ocorrencias)+fld('x-sim','SIM card 1',c.sim_card)+fld('x-telsim','Telefone SIM 1',c.tel_sim)+fld('x-sim2','SIM card 2',c.sim_card2)+fld('x-telsim2','Telefone SIM 2',c.tel_sim2)+'<div class="fld full"><label>Detalhes da instalação / instruções para a central</label><textarea id="x-det"'+dis+'>'+esc(c.detalhes||'')+'</textarea></div>'+
   '<div class="fld full"><label>Observações</label><textarea id="x-obs"'+dis+'>'+esc(c.observacoes||'')+'</textarea></div></div>';
-  if(c.horarios&&Object.keys(c.horarios).length)h+='<p class="note">Alarme desarmado: '+esc(Object.keys(c.horarios).map(function(k){return k+' '+c.horarios[k];}).join(' · '))+'</p>';
-  return h;
+  return h+instalacaoHtml(c);
 }
 async function abrirCliente(id){
   var r=await sb.from('v_clientes').select('*').eq('id',id).single();if(r.error)throw r.error;S.cliente=r.data;
@@ -482,7 +548,7 @@ async function abrirCliente(id){
   modal(h);
 }
 function lerFormCliente(){var cats=[].slice.call(document.querySelectorAll('.x-cat:checked')).map(function(x){return x.value;});
-  return {nome:val('x-nome'),nome_fantasia:val('x-fant')||null,codigo_monitoramento:val('x-cod')||null,categorias:cats,tipo:val('x-tipo')||null,pessoa:val('x-pessoa')||null,cpf_cnpj:val('x-doc')||null,rg_ie:val('x-rgie')||null,telefones:val('x-tel')||null,email:val('x-email')||null,contato:val('x-contato')||null,relatorio_email:val('x-rel')||null,endereco:val('x-end')||null,numero:val('x-num')||null,bairro:val('x-bairro')||null,cep:val('x-cep')||null,cidade:val('x-cid')||null,uf:val('x-uf')||null,sim_card:val('x-sim')||null,tel_sim:val('x-telsim')||null,sim_card2:val('x-sim2')||null,tel_sim2:val('x-telsim2')||null,observacoes:val('x-obs')||null};}
+  return {nome:val('x-nome'),nome_fantasia:val('x-fant')||null,codigo_monitoramento:val('x-cod')||null,categorias:cats,tipo:val('x-tipo')||null,pessoa:val('x-pessoa')||null,cpf_cnpj:val('x-doc')||null,rg_ie:val('x-rgie')||null,telefones:val('x-tel')||null,email:val('x-email')||null,contato:val('x-contato')||null,relatorio_email:val('x-rel')||null,endereco:val('x-end')||null,numero:val('x-num')||null,bairro:val('x-bairro')||null,cep:val('x-cep')||null,cidade:val('x-cid')||null,uf:val('x-uf')||null,sim_card:val('x-sim')||null,tel_sim:val('x-telsim')||null,sim_card2:val('x-sim2')||null,tel_sim2:val('x-telsim2')||null,observacoes:val('x-obs')||null,complemento:val('x-compl')||null,referencia:val('x-ref')||null,central:val('x-central')||null,conjunto_ocorrencias:val('x-conj')||null,detalhes:val('x-det')||null};}
 
 // ---------- CADASTRO DE FUNCIONÁRIOS ----------
 async function loadFuncionarios(){
@@ -626,6 +692,7 @@ window.A={
   cancelarAvulsa:async function(id){try{if(!confirm('Cancelar esta conta a pagar?'))return;var r=await sb.from('contas_pagar').update({status:'cancelado'}).eq('id',id);if(r.error)throw r.error;toast('Conta cancelada.');A.fechar();loadFin().catch(fail);}catch(e){fail(e);}},
   cfiltro:function(){S.cf={q:val('cf-q'),cat:val('cf-cat'),ativo:val('cf-at')};renderClientes();var q=el('cf-q');if(q){q.focus();var v=q.value;q.value='';q.value=v;}},
   abrirCliente:function(id){abrirCliente(id).catch(fail);},
+  imprimirOS:function(id){var w=window.open('','_blank');if(!w){toast('O navegador bloqueou a janela de impressão. Permita pop-ups para mesa.insiel.com.br.',true);return;}w.document.write('<p style="font-family:sans-serif;color:#666">Gerando a ordem de serviço…</p>');imprimirOS(id,w).catch(function(e){try{w.close();}catch(x){}fail(e);});},
   novoCliente:function(){modal('<h2>Novo cliente</h2>'+formCliente(null)+'<div class="acts"><button class="btn" onclick="A.salvarCliente(null)">Cadastrar</button><button class="btn sec" onclick="A.fechar()">Cancelar</button></div>');},
   salvarCliente:async function(id){try{var d=lerFormCliente();if(!d.nome)throw new Error('Informe o nome.');if(!d.categorias.length)throw new Error('Marque ao menos uma categoria.');var r=id?await sb.from('clientes').update(d).eq('id',id):await sb.from('clientes').insert(d);if(r.error)throw r.error;toast('Cliente salvo.');A.fechar();if(S.view==='clientes')loadClientes().catch(fail);}catch(e){fail(e);}},
   ativarCliente:async function(id,ativo){try{var r=await sb.from('clientes').update({ativo:ativo}).eq('id',id);if(r.error)throw r.error;toast(ativo?'Cliente reativado.':'Cliente inativado.');A.fechar();loadClientes().catch(fail);}catch(e){fail(e);}},
