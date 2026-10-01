@@ -78,7 +78,8 @@ function toast(m,err){var t=el('toast');if(t)t.remove();var d=document.createEle
 function fail(e){console.error(e);var m=(e&&e.message)?e.message:'Erro inesperado';if(/row-level security/.test(m))m='Sem permissão para esta ação (verifique seu papel na Mesa).';toast(m,true);}
 function dt(d){if(!d)return '—';var x=new Date(d);return x.toLocaleDateString('pt-BR')+' '+x.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
 function dd(d){if(!d)return '—';var p=String(d).slice(0,10).split('-');return p[2]+'/'+p[1]+'/'+p[0];}
-function today(){return new Date().toISOString().slice(0,10);}
+function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function ago(d){var h=(Date.now()-new Date(d).getTime())/36e5;if(h<1)return Math.round(h*60)+' min';if(h<48)return Math.round(h)+' h';return Math.round(h/24)+' dias';}
 function money(n){if(n===null||n===undefined||n==='')return '—';return Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
 function num(v){v=String(v||'').replace(/\./g,'').replace(',','.');var n=parseFloat(v);return isNaN(n)?null:n;}
@@ -244,7 +245,7 @@ function renderFin(){
 }
 function sum(A,f){return A.reduce(function(s,x){return s+(f(x)?Number(x.valor||0):0);},0);}
 function finResumo(){
-  var d7=new Date(Date.now()+7*864e5).toISOString().slice(0,10),d30=new Date(Date.now()+30*864e5).toISOString().slice(0,10),mes=today().slice(0,7);
+  var d7=ymd(new Date(Date.now()+7*864e5)),d30=ymd(new Date(Date.now()+30*864e5)),mes=today().slice(0,7);
   var cpAb=S.cp.filter(function(r){return r.status==='pendente';}),crAb=S.cr.filter(function(r){return r.status==='aberto';}),crDef=S.cr.filter(function(r){return r.status==='a_definir';});
   var h='<div class="kpis">'+
   '<div class="kpi ok" onclick="A.finTab(&quot;receber&quot;)"><b class="money">'+money(sum(crAb,function(){return true;}))+'</b><span>A receber em aberto ('+crAb.length+')</span></div>'+
@@ -388,7 +389,7 @@ window.A={
   apagarDoc:async function(id,path){try{if(!confirm('Apagar este documento?'))return;var r=await sb.from('documentos').delete().eq('id',id);if(r.error)throw r.error;await sb.storage.from(BUCKET).remove([path]);toast('Documento apagado.');if(S.compra&&el('k-fin'))abrirCompra(S.compra.id).catch(fail);else if(S.conta)abrirConta(S.conta.id).catch(fail);}catch(e){fail(e);}},
   lancarParcelas:async function(){try{var n=parseInt(val('p-n'),10)||1,tot=num(val('p-val')),v0=val('p-venc');if(tot===null||tot<=0)throw new Error('Informe o valor a parcelar.');if(!v0)throw new Error('Informe o primeiro vencimento.');
     var base=S.compra.parcelas.filter(function(p){return p.status!=='cancelado';}).length;var rows=[];var cents=Math.round(tot*100);var each=Math.floor(cents/n);
-    for(var i=0;i<n;i++){var d=new Date(v0+'T12:00:00');d.setMonth(d.getMonth()+i);var vv=(i===n-1?cents-each*(n-1):each)/100;rows.push({compra_id:S.compra.id,parcela:base+i+1,total_parcelas:base+n,descricao:val('p-desc')||null,valor:vv,vencimento:d.toISOString().slice(0,10)});}
+    for(var i=0;i<n;i++){var d=new Date(v0+'T12:00:00');d.setMonth(d.getMonth()+i);var vv=(i===n-1?cents-each*(n-1):each)/100;rows.push({compra_id:S.compra.id,parcela:base+i+1,total_parcelas:base+n,descricao:val('p-desc')||null,valor:vv,vencimento:ymd(d)});}
     var r=await sb.from('contas_pagar').insert(rows);if(r.error)throw r.error;
     if(base)await sb.from('contas_pagar').update({total_parcelas:base+n}).eq('compra_id',S.compra.id);
     await sb.from('eventos').insert({entidade:'compra',entidade_id:S.compra.id,texto:n+' parcela(s) lançada(s), total '+money(tot)});toast('Parcelas lançadas em Contas a Pagar.');abrirCompra(S.compra.id).catch(fail);}catch(e){fail(e);}},
@@ -400,7 +401,7 @@ window.A={
   pagarConta:async function(id){try{var d=prompt('Data do recebimento (AAAA-MM-DD):',today());if(d===null)return;var r=await sb.from('contas_receber').update({status:'pago',pago_em:d}).eq('id',id);if(r.error)throw r.error;toast('Recebimento registrado.');A.fechar();loadFin().catch(fail);}catch(e){fail(e);}},
   dividirConta:async function(){try{var r0=S.conta;var n=parseInt(val('r-n'),10);var tot=num(val('r-val'));var v0=val('r-venc1');if(!n||n<2)throw new Error('Informe 2 ou mais parcelas.');if(tot===null||tot<=0)throw new Error('Informe o valor total no campo Valor.');if(!v0)throw new Error('Informe o primeiro vencimento.');
     var cents=Math.round(tot*100),each=Math.floor(cents/n),rows=[];
-    for(var i=1;i<n;i++){var d=new Date(v0+'T12:00:00');d.setMonth(d.getMonth()+i);rows.push({chamado_id:r0.chamado_id,cliente:r0.cliente,parcela:i+1,total_parcelas:n,valor:(i===n-1?cents-each*(n-1):each)/100,vencimento:d.toISOString().slice(0,10),status:'aberto',forma:val('r-forma')||null});}
+    for(var i=1;i<n;i++){var d=new Date(v0+'T12:00:00');d.setMonth(d.getMonth()+i);rows.push({chamado_id:r0.chamado_id,cliente:r0.cliente,parcela:i+1,total_parcelas:n,valor:(i===n-1?cents-each*(n-1):each)/100,vencimento:ymd(d),status:'aberto',forma:val('r-forma')||null});}
     var r=await sb.from('contas_receber').update({parcela:1,total_parcelas:n,valor:each/100,vencimento:v0,status:'aberto',forma:val('r-forma')||null}).eq('id',r0.id);if(r.error)throw r.error;
     var r2=await sb.from('contas_receber').insert(rows);if(r2.error)throw r2.error;toast('Conta dividida em '+n+' parcelas.');A.fechar();loadFin().catch(fail);}catch(e){fail(e);}},
   addUser:async function(){try{var em=val('u-email').toLowerCase();if(!em)throw new Error('Informe o e-mail.');var r=await sb.from('usuarios').insert({email:em,nome:val('u-nome')||null,papel:val('u-papel')});if(r.error)throw r.error;toast('Usuário autorizado.');S.usuarios=[];loadUsuarios().catch(fail);}catch(e){fail(e);}},
