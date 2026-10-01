@@ -30,7 +30,7 @@ main{max-width:1280px;margin:0 auto;padding:20px}
 table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--sil);padding:8px 10px;border-bottom:1px solid var(--line)}td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
 tr.row{cursor:pointer}tr.row:hover{background:rgba(0,120,181,.05)}td b{color:var(--ink);font-weight:600}td.num,th.num{text-align:right;white-space:nowrap}
 .chip{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#EEF1F4;color:var(--gra);white-space:nowrap}
-.chip.novo{background:#FDEBEA;color:var(--red2)}.chip.em_contato{background:#FFF3CD;color:#7A5B00}.chip.orcamento_enviado{background:#E3F1F9;color:var(--blue)}.chip.convertido,.chip.faturado,.chip.pago,.chip.aprovada{background:#E6F5EC;color:var(--ok)}.chip.descartado,.chip.cancelado,.chip.recusada{background:#EEF1F4;color:var(--sil)}.chip.concluido,.chip.a_definir{background:#EDE9FE;color:#5B3FB0}.chip.pendente,.chip.aberto{background:#FFF3CD;color:#7A5B00}.chip.atrasado{background:var(--red);color:#fff}
+.chip.novo{background:#FDEBEA;color:var(--red2)}.chip.em_contato{background:#FFF3CD;color:#7A5B00}.chip.orcamento_enviado{background:#E3F1F9;color:var(--blue)}.chip.convertido,.chip.faturado,.chip.pago,.chip.aprovada{background:#E6F5EC;color:var(--ok)}.chip.descartado,.chip.cancelado,.chip.recusada{background:#EEF1F4;color:var(--sil)}.chip.concluido,.chip.a_definir{background:#EDE9FE;color:#5B3FB0}.chip.fechado{background:#E6F5EC;color:var(--ok)}.chip.pendente,.chip.aberto{background:#FFF3CD;color:#7A5B00}.chip.atrasado{background:var(--red);color:#fff}
 .chip.seguranca{background:#E3F1F9;color:var(--blue)}.chip.solar{background:#FFF6DB;color:#8A6400}.chip.tecnologia{background:#EDE9FE;color:#5B3FB0}.chip.transito{background:#E6F5EC;color:var(--ok)}
 .chip.urgente{background:var(--red);color:#fff}.chip.alta{background:#FDEBEA;color:var(--red2)}
 .muted{color:var(--sil);font-size:12px}.empty{padding:26px;text-align:center;color:var(--sil)}.money{font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -64,9 +64,9 @@ var BUCKET='insiel';
 var S={clientes:[],cf:{q:'',cat:'',ativo:'sim'},cliente:null,perfil:null,view:'dash',tipo:'orcamento',leads:[],usuarios:[],f:{divisao:'',status:'',perfil:'',q:''},lead:null,eventos:[],custos:null,comprasLead:[],crLead:[],finTab:'resumo',compras:[],cp:[],cr:[],ff:{status:'',q:''},compra:null,conta:null};
 var DIV={seguranca:'Segurança',solar:'Energia Solar',tecnologia:'Tecnologia',transito:'Trânsito'};
 var PERF={residencia:'Residência',empresa:'Empresa',industria:'Indústria',orgao_publico:'Órgão público'};
-var ST={novo:'Novo',em_contato:'Em contato',orcamento_enviado:'Orçamento enviado',convertido:'Convertido',descartado:'Descartado',concluido:'Concluído',faturado:'Faturado'};
-var ST_CH={novo:'Aberto',em_contato:'Em atendimento',concluido:'Concluído · em cobrança',faturado:'Faturado',descartado:'Cancelado'};
-var STOPS={orcamento:['novo','em_contato','orcamento_enviado','convertido','descartado'],chamado:['novo','em_contato','concluido','faturado','descartado'],contato:['novo','em_contato','convertido','descartado']};
+var ST={novo:'Novo',em_contato:'Em contato',orcamento_enviado:'Orçamento enviado',convertido:'Convertido',descartado:'Descartado',concluido:'Concluído',faturado:'Faturado',fechado:'Fechado'};
+var ST_CH={novo:'Aberta',em_contato:'Em atendimento',concluido:'Concluída · a finalizar (Financeiro)',faturado:'Fechada · cobrança gerada',fechado:'Fechada sem cobrança',descartado:'Cancelada'};
+var STOPS={orcamento:['novo','em_contato','orcamento_enviado','convertido','descartado'],chamado:['novo','em_contato','concluido','faturado','fechado','descartado'],contato:['novo','em_contato','convertido','descartado']};
 var TIPO={orcamento:'Orçamentos',chamado:'Ordens de serviço',contato:'Contatos do site'};
 var PRI={baixa:'Baixa',normal:'Normal',alta:'Alta',urgente:'Urgente'};
 var STC={pendente:'Pendente de aprovação',aprovada:'Aprovada',recusada:'Recusada'};
@@ -119,10 +119,10 @@ async function enter(){
 }
 function renderShell(){
   el('app').innerHTML='<header class="topbar"><div class="wrap">'+brand()+'<nav>'+
-  '<span class="grp"><button id="nv-dash" onclick="go(&quot;dash&quot;)">Painel ▾</button><span class="sub"><button id="nv-dash2" onclick="go(&quot;dash&quot;)">Resumo</button><button id="nv-orcamento" onclick="go(&quot;orcamento&quot;)">Orçamentos</button><button id="nv-contato" onclick="go(&quot;contato&quot;)">Contatos</button></span></span><button id="nv-chamado" onclick="go(&quot;chamado&quot;)">Ordens de Serviço</button><button id="nv-fin" onclick="go(&quot;fin&quot;)">Financeiro</button><button id="nv-clientes" onclick="go(&quot;clientes&quot;)">Cadastro</button><button id="nv-usuarios" onclick="go(&quot;usuarios&quot;)">Usuários</button></nav>'+
+  '<span class="grp"><button id="nv-dash" onclick="go(&quot;dash&quot;)">Painel ▾</button><span class="sub"><button id="nv-dash2" onclick="go(&quot;dash&quot;)">Resumo</button><button id="nv-orcamento" onclick="go(&quot;orcamento&quot;)">Orçamentos</button><button id="nv-contato" onclick="go(&quot;contato&quot;)">Contatos</button></span></span><button id="nv-chamado" onclick="go(&quot;chamado&quot;)">Ordens de Serviço</button><span class="grp"><button id="nv-fin" onclick="A.goFin(&quot;resumo&quot;)">Financeiro ▾</button><span class="sub"><button id="nv-fin-resumo" onclick="A.goFin(&quot;resumo&quot;)">Painel financeiro</button><button id="nv-fin-compras" onclick="A.goFin(&quot;compras&quot;)">Compras</button><button id="nv-fin-receber" onclick="A.goFin(&quot;receber&quot;)">Contas a Receber</button><button id="nv-fin-pagar" onclick="A.goFin(&quot;pagar&quot;)">Contas a Pagar</button></span></span><button id="nv-clientes" onclick="go(&quot;clientes&quot;)">Cadastro</button><button id="nv-usuarios" onclick="go(&quot;usuarios&quot;)">Usuários</button></nav>'+
   '<span class="who">'+esc(S.perfil.nome||S.perfil.email)+' · '+esc(S.perfil.papel)+'</span><button class="btn sec sm" onclick="A.sair()">Sair</button></div></header><main id="main"></main>';
 }
-function go(v){S.view=v;document.querySelectorAll('.topbar nav button').forEach(function(b){b.classList.toggle('on',b.id==='nv-'+v||(b.id==='nv-dash'&&(v==='dash'||v==='orcamento'||v==='contato'))||(b.id==='nv-dash2'&&v==='dash'));});
+function go(v){S.view=v;document.querySelectorAll('.topbar nav button').forEach(function(b){b.classList.toggle('on',b.id==='nv-'+v||(b.id==='nv-dash'&&(v==='dash'||v==='orcamento'||v==='contato'))||(b.id==='nv-dash2'&&v==='dash')||(v==='fin'&&b.id==='nv-fin-'+S.finTab));});
   if(v==='dash')loadDash().catch(fail);else if(v==='usuarios')loadUsuarios().catch(fail);else if(v==='fin')loadFin().catch(fail);else if(v==='clientes')loadClientes().catch(fail);else{S.tipo=v;loadLista().catch(fail);}}
 
 // ---------- PAINEL ----------
@@ -139,7 +139,7 @@ async function loadDash(){
   '<div class="kpi" onclick="A.goFiltro(&quot;orcamento&quot;,{})"><b>'+n(function(l){return new Date(l.created_at)>=mes;})+'</b><span>Recebidos no mês</span></div>'+
   '<div class="kpi ok" onclick="A.goFiltro(&quot;orcamento&quot;,{status:&quot;convertido&quot;})"><b>'+n(function(l){return l.status==='convertido'&&new Date(l.atualizado_em)>=mes;})+'</b><span>Convertidos no mês</span></div>'+
   '<div class="kpi warn" onclick="A.goFiltro(&quot;chamado&quot;,{})"><b>'+n(function(l){return l.tipo==='chamado'&&(l.status==='novo'||l.status==='em_contato');})+'</b><span>Ordens de serviço em aberto</span></div>'+
-  '<div class="kpi" onclick="A.goFin(&quot;receber&quot;)"><b>'+n(function(l){return l.tipo==='chamado'&&l.status==='concluido';})+'</b><span>Ordens de serviço em cobrança</span></div></div>';
+  '<div class="kpi" onclick="A.goFin(&quot;resumo&quot;)"><b>'+n(function(l){return l.tipo==='chamado'&&l.status==='concluido';})+'</b><span>OS a finalizar no Financeiro</span></div></div>';
   h+='<div class="panel"><h2>Orçamentos por divisão (em aberto)</h2><table><tr><th>Divisão</th><th>Novos</th><th>Em contato</th><th>Orçamento enviado</th><th>Mês</th></tr>';
   Object.keys(DIV).forEach(function(d){h+='<tr class="row" onclick="A.goFiltro(&quot;orcamento&quot;,{divisao:&quot;'+d+'&quot;})"><td>'+chip(d,DIV[d])+'</td><td>'+n(function(l){return l.tipo==='orcamento'&&l.divisao===d&&l.status==='novo';})+'</td><td>'+n(function(l){return l.tipo==='orcamento'&&l.divisao===d&&l.status==='em_contato';})+'</td><td>'+n(function(l){return l.tipo==='orcamento'&&l.divisao===d&&l.status==='orcamento_enviado';})+'</td><td>'+n(function(l){return l.tipo==='orcamento'&&l.divisao===d&&new Date(l.created_at)>=mes;})+'</td></tr>';});
   h+='</table></div>';
@@ -214,8 +214,8 @@ function renderDetalhe(){
     var k=S.custos||{};
     h+='<div class="sec-t">Compras da OS <span class="sp"></span>'+(l.status!=='faturado'&&l.status!=='descartado'?'<button class="btn sm" onclick="A.novaCompra(&quot;'+l.id+'&quot;)">+ Compra</button>':'')+'</div>';
     h+=S.comprasLead.length?'<table><tr><th>Finalidade</th><th>Fornecedor</th><th class="num">Valor</th><th>Status</th></tr>'+S.comprasLead.map(function(c){return '<tr class="row" onclick="A.abrirCompra(&quot;'+c.id+'&quot;)"><td><b>'+esc(c.finalidade)+'</b><div class="muted">'+esc((c.solicitante||'').split('@')[0])+' · '+esc(dd(c.created_at))+'</div></td><td>'+esc(c.fornecedor||'—')+'</td><td class="num money">'+money(c.valor)+'</td><td>'+chip(c.status,STC[c.status])+(c.status==='aprovada'&&!c.tem_nf?' '+chip('pendente','sem NF'):'')+'</td></tr>';}).join('')+'<tr><td colspan="2"><b>Custo aprovado</b></td><td class="num money"><b>'+money(k.custo_aprovado||0)+'</b></td><td></td></tr></table>':'<p class="muted">Nenhuma compra vinculada.</p>';
-    h+='<div class="sec-t">Cobrança</div>';
-    h+=S.crLead.length?'<table><tr><th>Parcela</th><th class="num">Valor</th><th>Vencimento</th><th>Status</th></tr>'+S.crLead.map(function(r){return '<tr class="row" onclick="A.abrirConta(&quot;'+r.id+'&quot;)"><td>'+r.parcela+'/'+r.total_parcelas+'</td><td class="num money">'+money(r.valor)+'</td><td>'+esc(dd(r.vencimento))+'</td><td>'+chipCr(r)+'</td></tr>';}).join('')+'</table>':'<p class="muted">Ainda não enviada à cobrança. Ao marcar a OS como Concluída, a conta a receber é criada automaticamente.</p>';
+    h+='<div class="sec-t">Fechamento / cobrança <span class="sp"></span>'+(l.status==='concluido'&&isFin()?'<button class="btn sm" onclick="A.fechar();A.fecharOS(&quot;'+l.id+'&quot;)">Finalizar OS</button>':(l.status==='faturado'||l.status==='fechado'?'<button class="btn sec sm" onclick="A.fechar();A.fecharOS(&quot;'+l.id+'&quot;)">Ver fechamento</button>':''))+'</div>';
+    h+=S.crLead.length?'<table><tr><th>Parcela</th><th class="num">Valor</th><th>Vencimento</th><th>Status</th></tr>'+S.crLead.map(function(r){return '<tr class="row" onclick="A.abrirConta(&quot;'+r.id+'&quot;)"><td>'+r.parcela+'/'+r.total_parcelas+'</td><td class="num money">'+money(r.valor)+'</td><td>'+esc(dd(r.vencimento))+'</td><td>'+chipCr(r)+'</td></tr>';}).join('')+'</table>':'<p class="muted">'+(l.status==='concluido'?'Aguardando fechamento pelo Financeiro.':(l.status==='fechado'?'Fechada sem cobrança.':'Ao marcar a OS como Concluída ela vai para a fila do Financeiro, que define o que será cobrado.'))+'</p>';
   }
   h+='<div class="sec-t">Histórico</div><div class="fld"><textarea id="d-nota" placeholder="Escreva uma observação…"></textarea></div><button class="btn sm" onclick="A.nota()">Adicionar observação</button><div id="d-ev">'+eventosHtml(S.eventos)+'</div></div>';
   h+='<div><div class="frm"><div class="fld full"><label>Status</label>'+sel('d-st',STOPS[l.tipo].map(function(k){return [k,stmap[k]];}),l.status)+'</div>'+
@@ -226,7 +226,7 @@ function renderDetalhe(){
   (ch?'<div class="fld"><label>Endereço</label><input id="d-end" value="'+esc(l.endereco||'')+'"></div>':'')+
   '<div class="fld full"><label>Observações fixas</label><textarea id="d-obs">'+esc(l.observacoes||'')+'</textarea></div></div>'+
   '<div class="acts"><button class="btn" onclick="A.salvar()">Salvar</button><button class="btn sec" onclick="A.contato()">Registrar contato agora</button></div>'+
-  (ch&&l.status!=='concluido'&&l.status!=='faturado'&&l.status!=='descartado'?'<p class="note" style="margin-top:10px">Ao concluir o serviço, mude o status para <b>Concluído</b>: a OS vai para Contas a Receber.</p>':'')+
+  (ch&&(l.status==='novo'||l.status==='em_contato')?'<p class="note" style="margin-top:10px">Ao concluir o serviço, mude o status para <b>Concluída</b>: a OS vai para a fila "O.S. a finalizar" do Financeiro.</p>':'')+
   '<p class="note" style="margin-top:10px">LGPD: '+(l.consentimento_lgpd?'consentido':'interno')+' · id '+esc(l.id.slice(0,8))+'</p></div></div>';
   modal(h);
   el('d-st').addEventListener('change',function(){el('d-mot-w').hidden=this.value!=='descartado';});
@@ -239,6 +239,7 @@ async function loadFin(){
   var a=await sb.from('v_compras').select('*').order('created_at',{ascending:false}).limit(500);if(a.error)throw a.error;S.compras=a.data;
   var b=await sb.from('v_contas_pagar').select('*').order('vencimento');if(b.error)throw b.error;S.cp=b.data;
   var c=await sb.from('v_contas_receber').select('*').order('vencimento',{ascending:true,nullsFirst:true});if(c.error)throw c.error;S.cr=c.data;
+  var o=await sb.from('v_os').select('*').eq('status','concluido').order('concluido_em');if(o.error)throw o.error;S.osFin=o.data;
   renderFin();
 }
 function renderFin(){
@@ -253,14 +254,17 @@ function finResumo(){
   var d7=ymd(new Date(Date.now()+7*864e5)),d30=ymd(new Date(Date.now()+30*864e5)),mes=today().slice(0,7);
   var cpAb=S.cp.filter(function(r){return r.status==='pendente';}),crAb=S.cr.filter(function(r){return r.status==='aberto';}),crDef=S.cr.filter(function(r){return r.status==='a_definir';});
   var h='<div class="kpis">'+
+  '<div class="kpi red" onclick="document.getElementById(&quot;os-fin&quot;).scrollIntoView({behavior:&quot;smooth&quot;})"><b>'+(S.osFin||[]).length+'</b><span>OS a finalizar</span></div>'+
   '<div class="kpi ok" onclick="A.finTab(&quot;receber&quot;)"><b class="money">'+money(sum(crAb,function(){return true;}))+'</b><span>A receber em aberto ('+crAb.length+')</span></div>'+
   '<div class="kpi" onclick="A.finTab(&quot;receber&quot;)"><b class="money">'+money(sum(S.cr,function(r){return r.status==='pago'&&String(r.pago_em||'').slice(0,7)===mes;}))+'</b><span>Recebido no mês</span></div>'+
-  '<div class="kpi warn" onclick="A.finTab(&quot;receber&quot;)"><b>'+crDef.length+'</b><span>OS com valor a definir</span></div>'+
+  
   '<div class="kpi red" onclick="A.finTab(&quot;pagar&quot;)"><b class="money">'+money(sum(cpAb,function(r){return r.vencimento<today();}))+'</b><span>A pagar atrasado ('+cpAb.filter(function(r){return r.vencimento<today();}).length+')</span></div>'+
   '<div class="kpi warn" onclick="A.finTab(&quot;pagar&quot;)"><b class="money">'+money(sum(cpAb,function(r){return r.vencimento>=today()&&r.vencimento<=d7;}))+'</b><span>A pagar em 7 dias</span></div>'+
   '<div class="kpi" onclick="A.finTab(&quot;pagar&quot;)"><b class="money">'+money(sum(cpAb,function(r){return r.vencimento>=today()&&r.vencimento<=d30;}))+'</b><span>A pagar em 30 dias</span></div>'+
   '<div class="kpi warn" onclick="A.finTab(&quot;compras&quot;)"><b>'+S.compras.filter(function(c){return c.status==='pendente';}).length+'</b><span>Compras aguardando aprovação</span></div>'+
   '<div class="kpi" onclick="A.finTab(&quot;compras&quot;)"><b>'+S.compras.filter(function(c){return c.status==='aprovada'&&(!c.tem_nf||!c.n_parcelas);}).length+'</b><span>Compras aprovadas sem NF ou parcelas</span></div></div>';
+  var OF=S.osFin||[];
+  h+='<div class="panel" id="os-fin"><h2>O.S. a finalizar <span class="muted">concluídas pela equipe técnica, aguardando fechamento do Financeiro</span></h2>'+(OF.length?'<table><tr><th>Concluída em</th><th>Cliente</th><th>Serviço</th><th>Técnico</th><th class="num">Custo compras</th><th class="num">Itens lançados</th><th></th></tr>'+OF.map(function(o){return '<tr class="row" onclick="A.fecharOS(&quot;'+o.id+'&quot;)"><td>'+esc(dd(o.concluido_em||o.created_at))+'<div class="muted">'+esc((o.concluido_por||'').split('@')[0])+'</div></td><td><b>'+esc(o.nome)+'</b><div class="muted">'+esc(o.cidade||'')+'</div></td><td>'+esc((o.detalhes&&o.detalhes.problema)||'')+'</td><td>'+esc((o.responsavel||'—').split('@')[0])+'</td><td class="num money">'+money(o.custo_aprovado)+(o.compras_pendentes>0?' '+chip('pendente',o.compras_pendentes+' compra(s) pendente(s)'):'')+'</td><td class="num money">'+money(o.total_itens)+'</td><td>'+(isFin()?'<button class="btn sm" onclick="event.stopPropagation();A.fecharOS(&quot;'+o.id+'&quot;)">Finalizar</button>':'')+'</td></tr>';}).join('')+'</table>':'<div class="empty">Nenhuma OS aguardando fechamento.</div>')+'</div>';
   var pend=S.compras.filter(function(c){return c.status==='pendente';});
   h+='<div class="panel"><h2>Compras aguardando aprovação'+(isAdmin()?'':' <span class="muted">(aprovação é do administrador)</span>')+'</h2>'+(pend.length?tabCompras(pend):'<div class="empty">Nenhuma.</div>')+'</div>';
   var prox=cpAb.filter(function(r){return r.vencimento<=d7;});
@@ -319,6 +323,42 @@ async function uploadDoc(entidade,id,tipo,file){
   var safe=file.name.replace(/[^\w.\-]+/g,'_');var path=entidade+'/'+id+'/'+Date.now()+'_'+safe;
   var up=await sb.storage.from(BUCKET).upload(path,file,{contentType:file.type||'application/octet-stream'});if(up.error)throw up.error;
   var r=await sb.from('documentos').insert({entidade:entidade,entidade_id:id,tipo:tipo,nome:file.name,storage_path:path,tamanho:file.size});if(r.error)throw r.error;
+}
+
+
+// ---------- FECHAMENTO DA OS (Financeiro) ----------
+async function fecharOS(id){
+  var r=await sb.from('v_os').select('*').eq('id',id).single();if(r.error)throw r.error;S.os=r.data;
+  var c=await sb.from('v_compras').select('*').eq('chamado_id',id).order('created_at');S.os.compras=c.data||[];
+  var it=await sb.from('os_itens').select('*').eq('lead_id',id).order('ordem');S.os.itens=(it.data||[]).map(function(x){return {descricao:x.descricao,quantidade:Number(x.quantidade),valor_unit:Number(x.valor_unit)};});
+  if(!S.os.itens.length)S.os.itens=[{descricao:'Serviço técnico: '+((S.os.detalhes&&S.os.detalhes.problema)||'').slice(0,60),quantidade:1,valor_unit:0}];
+  var cr=await sb.from('v_contas_receber').select('*').eq('chamado_id',id).order('parcela');S.os.contas=cr.data||[];
+  renderFecharOS();
+}
+function osTotal(){return S.os.itens.reduce(function(t,i){return t+Math.round((Number(i.quantidade)||0)*(Number(i.valor_unit)||0)*100)/100;},0);}
+function renderFecharOS(){
+  var o=S.os;var fin=isFin();var aberta=o.status==='concluido';var ed=fin&&aberta;
+  var h='<h2>Fechamento da OS: '+esc(o.nome)+' '+chip(o.status,ST_CH[o.status]||o.status)+'</h2><p class="muted">'+esc((o.detalhes&&o.detalhes.problema)||'')+' · '+esc(o.cidade||'')+' · técnico '+esc((o.responsavel||'—').split('@')[0])+' · concluída em '+esc(dt(o.concluido_em))+'</p>';
+  h+='<div class="det"><div><div class="sec-t" style="margin-top:0">Compras aprovadas (custo)</div>'+(o.compras.length?'<table>'+o.compras.map(function(c){return '<tr><td>'+esc(c.finalidade)+'<div class="muted">'+esc(c.fornecedor||'')+'</div></td><td>'+chip(c.status,STC[c.status])+'</td><td class="num money">'+money(c.valor)+'</td></tr>';}).join('')+'<tr><td><b>Custo aprovado</b></td><td></td><td class="num money"><b>'+money(o.custo_aprovado)+'</b></td></tr></table>':'<p class="muted">Sem compras nesta OS.</p>')+(o.compras_pendentes>0?'<p class="note" style="color:var(--red2)">Há compra pendente de aprovação. O custo pode mudar.</p>':'');
+  h+='<div class="sec-t">Valores a cobrar '+(ed?'<span class="sp"></span><button class="btn sec sm" onclick="A.osAddItem()">+ Item</button>':'')+'</div><table id="os-itens"><tr><th>Descrição</th><th class="num">Qtd</th><th class="num">Valor unit.</th><th class="num">Total</th><th></th></tr>'+
+  o.itens.map(function(i,k){var tot=Math.round((Number(i.quantidade)||0)*(Number(i.valor_unit)||0)*100)/100;return '<tr><td><input class="osi" data-k="'+k+'" data-f="descricao" value="'+esc(i.descricao)+'"'+(ed?'':' disabled')+' style="width:100%;padding:6px;border:1px solid var(--line);border-radius:4px"></td><td class="num"><input class="osi" data-k="'+k+'" data-f="quantidade" value="'+esc(i.quantidade)+'"'+(ed?'':' disabled')+' style="width:60px;padding:6px;border:1px solid var(--line);border-radius:4px;text-align:right"></td><td class="num"><input class="osi" data-k="'+k+'" data-f="valor_unit" value="'+esc(Number(i.valor_unit).toLocaleString('pt-BR',{minimumFractionDigits:2}))+'"'+(ed?'':' disabled')+' style="width:110px;padding:6px;border:1px solid var(--line);border-radius:4px;text-align:right"></td><td class="num money">'+money(tot)+'</td><td>'+(ed?'<button class="btn sec sm" onclick="A.osDelItem('+k+')">×</button>':'')+'</td></tr>';}).join('')+
+  '<tr><td colspan="3"><b>Total a cobrar</b></td><td class="num money"><b id="os-total">'+money(osTotal())+'</b></td><td></td></tr></table>';
+  if(o.custo_aprovado>0)h+='<p class="note">Margem estimada: '+money(osTotal()-o.custo_aprovado)+'</p>';
+  h+='</div><div>';
+  if(aberta){
+    h+=(fin?'':'<p class="note">O fechamento é feito pelo papel Financeiro.</p>')+'<div class="sec-t" style="margin-top:0">Como fechar</div><div class="chips" style="margin-bottom:10px"><label class="chip"><input type="radio" name="os-modo" value="cobrar" checked onchange="A.osModo()"'+(ed?'':' disabled')+'><span>Gerar conta a receber</span></label><label class="chip"><input type="radio" name="os-modo" value="sem" onchange="A.osModo()"'+(ed?'':' disabled')+'><span>Fechar sem cobrança</span></label></div>'+
+    '<div id="os-cobrar"><div class="frm"><div class="fld"><label>Parcelas</label><input id="os-n" type="number" min="1" value="1"'+(ed?'':' disabled')+'></div><div class="fld"><label>1º vencimento</label><input id="os-venc" type="date" value="'+today()+'"'+(ed?'':' disabled')+'></div><div class="fld full"><label>Forma</label><input id="os-forma" placeholder="boleto, pix, cartão…"'+(ed?'':' disabled')+'></div></div></div>'+
+    '<div id="os-sem" hidden><div class="fld"><label>Motivo (garantia, cortesia, contrato…)</label><input id="os-motivo"'+(ed?'':' disabled')+'></div></div>'+
+    '<div class="fld"><label>Observações da cobrança</label><textarea id="os-obs"'+(ed?'':' disabled')+'>'+esc(o.cobranca_obs||'')+'</textarea></div>'+
+    (ed?'<div class="acts"><button class="btn" onclick="A.osFechar()">Fechar OS</button><button class="btn sec" onclick="A.osSalvarItens()">Salvar itens sem fechar</button></div>':'');
+  }else{
+    h+='<div class="sec-t" style="margin-top:0">Fechamento</div><dl class="kv"><dt>Fechada em</dt><dd>'+esc(dt(o.fechado_em))+' por '+esc((o.fechado_por||'').split('@')[0])+'</dd><dt>Valor cobrado</dt><dd class="money"><b>'+money(o.valor_cobrado)+'</b></dd><dt>Observações</dt><dd>'+esc(o.cobranca_obs||'—')+'</dd></dl>';
+    h+='<div class="sec-t">Contas a receber</div>'+(o.contas.length?'<table>'+o.contas.map(function(r){return '<tr class="row" onclick="A.abrirConta(&quot;'+r.id+'&quot;)"><td>'+r.parcela+'/'+r.total_parcelas+'</td><td class="num money">'+money(r.valor)+'</td><td>'+esc(dd(r.vencimento))+'</td><td>'+chipCr(r)+'</td></tr>';}).join('')+'</table>':'<p class="muted">Sem conta a receber (fechada sem cobrança).</p>');
+    if(isAdmin())h+='<div class="acts"><button class="btn sec sm" onclick="A.osReabrir()">Reabrir para o Financeiro</button></div>';
+  }
+  h+='<p class="note" style="margin-top:12px"><a href="#" onclick="A.fechar();A.abrir(&quot;'+o.id+'&quot;);return false">Abrir a OS completa</a></p></div></div>';
+  modal(h);
+  document.querySelectorAll('.osi').forEach(function(inp){inp.addEventListener('input',function(){var k=+this.dataset.k,f=this.dataset.f;S.os.itens[k][f]=f==='descricao'?this.value:(f==='valor_unit'?(num(this.value)||0):(parseFloat(String(this.value).replace(',','.'))||0));el('os-total').textContent=money(osTotal());});});
 }
 
 // ---------- CONTA A RECEBER ----------
@@ -404,7 +444,7 @@ window.A={
   sair:async function(){await sb.auth.signOut();},
   goFiltro:function(tipo,f){S.f={divisao:f.divisao||'',status:f.status||'',perfil:'',q:''};go(tipo);},
   goFin:function(tab){S.finTab=tab;S.ff={status:'',q:''};go('fin');},
-  finTab:function(t){S.finTab=t;S.ff={status:'',q:''};renderFin();},
+  finTab:function(t){S.finTab=t;S.ff={status:'',q:''};renderFin();document.querySelectorAll('.topbar nav button').forEach(function(b){if(b.id.indexOf('nv-fin-')===0)b.classList.toggle('on',b.id==='nv-fin-'+t);});},
   ffiltro:function(){S.ff={q:val('ff-q'),status:val('ff-st')};renderFin();var q=el('ff-q');if(q){q.focus();var v=q.value;q.value='';q.value=v;}},
   filtro:function(){S.f={q:val('f-q'),divisao:val('f-div'),status:val('f-st'),perfil:val('f-perf')};renderLista();el('f-q').focus();var v=el('f-q').value;el('f-q').value='';el('f-q').value=v;},
   limparFiltro:function(){S.f={divisao:'',status:'',perfil:'',q:''};renderLista();},
@@ -415,7 +455,7 @@ window.A={
     var r=await sb.from('leads').insert({tipo:'chamado',cliente_id:val('c-cliid')||null,divisao:val('c-div'),perfil:val('c-perf'),nome:nome,whatsapp:wa,email:val('c-email')||null,cidade:val('c-cid')||null,endereco:val('c-end')||null,detalhes:{problema:prob},pagina_origem:'mesa',criado_por:S.perfil.email,prioridade:val('c-pri'),responsavel:val('c-resp')||null,data_visita:val('c-vis')||null,consentimento_lgpd:true}).select('id').single();if(r.error)throw r.error;
     await sb.from('lead_eventos').insert({lead_id:r.data.id,tipo:'sistema',texto:'Ordem de serviço aberta pela Mesa'});toast('Ordem de serviço aberta.');A.fechar();S.tipo='chamado';if(S.view!=='chamado')go('chamado');else loadLista().catch(fail);}catch(e){fail(e);}},
   salvar:async function(){try{var l=S.lead;var up={status:val('d-st'),responsavel:val('d-resp')||null,prioridade:val('d-pri'),data_visita:val('d-vis')||null,observacoes:val('d-obs')||null,motivo_descarte:val('d-st')==='descartado'?(val('d-mot')||null):null};if(el('d-end'))up.endereco=val('d-end')||null;
-    var r=await sb.from('leads').update(up).eq('id',l.id);if(r.error)throw r.error;toast(up.status==='concluido'&&l.status!=='concluido'?'OS concluída e enviada à cobrança.':'Salvo.');A.fechar();if(S.view==='dash')loadDash().catch(fail);else if(S.view==='fin')loadFin().catch(fail);else loadLista().catch(fail);}catch(e){fail(e);}},
+    var r=await sb.from('leads').update(up).eq('id',l.id);if(r.error)throw r.error;toast(up.status==='concluido'&&l.status!=='concluido'?'OS concluída e enviada ao Financeiro.':'Salvo.');A.fechar();if(S.view==='dash')loadDash().catch(fail);else if(S.view==='fin')loadFin().catch(fail);else loadLista().catch(fail);}catch(e){fail(e);}},
   nota:async function(){try{var t=val('d-nota');if(!t)return;var r=await sb.from('lead_eventos').insert({lead_id:S.lead.id,tipo:'nota',texto:t});if(r.error)throw r.error;el('d-nota').value='';var e=await sb.from('lead_eventos').select('*').eq('lead_id',S.lead.id).order('created_at',{ascending:false});S.eventos=e.data||[];el('d-ev').innerHTML=eventosHtml(S.eventos);}catch(e){fail(e);}},
   contato:async function(){try{var l=S.lead;var up={ultimo_contato_em:new Date().toISOString()};if(l.status==='novo')up.status='em_contato';var r=await sb.from('leads').update(up).eq('id',l.id);if(r.error)throw r.error;
     await sb.from('lead_eventos').insert({lead_id:l.id,tipo:'contato',texto:'Contato realizado (WhatsApp/telefone)'});toast('Contato registrado.');abrir(l.id).catch(fail);}catch(e){fail(e);}},
@@ -448,6 +488,23 @@ window.A={
     for(var i=1;i<n;i++){var d=new Date(v0+'T12:00:00');d.setMonth(d.getMonth()+i);rows.push({chamado_id:r0.chamado_id,cliente:r0.cliente,parcela:i+1,total_parcelas:n,valor:(i===n-1?cents-each*(n-1):each)/100,vencimento:ymd(d),status:'aberto',forma:val('r-forma')||null});}
     var r=await sb.from('contas_receber').update({parcela:1,total_parcelas:n,valor:each/100,vencimento:v0,status:'aberto',forma:val('r-forma')||null}).eq('id',r0.id);if(r.error)throw r.error;
     var r2=await sb.from('contas_receber').insert(rows);if(r2.error)throw r2.error;toast('Conta dividida em '+n+' parcelas.');A.fechar();loadFin().catch(fail);}catch(e){fail(e);}},
+  fecharOS:function(id){fecharOS(id).catch(fail);},
+  osAddItem:function(){S.os.itens.push({descricao:'',quantidade:1,valor_unit:0});renderFecharOS();},
+  osDelItem:function(k){S.os.itens.splice(k,1);if(!S.os.itens.length)S.os.itens.push({descricao:'',quantidade:1,valor_unit:0});renderFecharOS();},
+  osModo:function(){var sem=document.querySelector('input[name="os-modo"][value="sem"]').checked;el('os-cobrar').hidden=sem;el('os-sem').hidden=!sem;},
+  osSalvarItens:async function(){try{var o=S.os;var its=S.os.itens.filter(function(i){return i.descricao;});await sb.from('os_itens').delete().eq('lead_id',o.id);if(its.length){var r=await sb.from('os_itens').insert(its.map(function(i,k){return {lead_id:o.id,ordem:k+1,descricao:i.descricao,quantidade:i.quantidade||1,valor_unit:i.valor_unit||0};}));if(r.error)throw r.error;}var u=await sb.from('leads').update({cobranca_obs:val('os-obs')||null}).eq('id',o.id);if(u.error)throw u.error;toast('Itens salvos.');}catch(e){fail(e);}},
+  osFechar:async function(){try{var o=S.os;var sem=document.querySelector('input[name="os-modo"][value="sem"]').checked;var total=osTotal();
+    if(!sem&&total<=0)throw new Error('Informe os valores a cobrar ou escolha "Fechar sem cobrança".');
+    if(sem&&!val('os-motivo'))throw new Error('Informe o motivo do fechamento sem cobrança.');
+    await A.osSalvarItens();
+    var obs=val('os-obs')||'';if(sem)obs=('Sem cobrança: '+val('os-motivo')+(obs?' · '+obs:''));
+    if(!sem){var n=parseInt(val('os-n'),10)||1,v0=val('os-venc');if(!v0)throw new Error('Informe o primeiro vencimento.');var cents=Math.round(total*100),each=Math.floor(cents/n),rows=[];
+      for(var i=0;i<n;i++){var d=new Date(v0+'T12:00:00');d.setMonth(d.getMonth()+i);rows.push({chamado_id:o.id,cliente:o.nome,parcela:i+1,total_parcelas:n,valor:(i===n-1?cents-each*(n-1):each)/100,vencimento:ymd(d),status:'aberto',forma:val('os-forma')||null});}
+      var rc=await sb.from('contas_receber').insert(rows);if(rc.error)throw rc.error;}
+    var up=await sb.from('leads').update({status:sem?'fechado':'faturado',valor_cobrado:sem?0:total,cobranca_obs:obs||null}).eq('id',o.id);if(up.error)throw up.error;
+    await sb.from('lead_eventos').insert({lead_id:o.id,tipo:'sistema',texto:sem?'OS fechada pelo Financeiro sem cobrança ('+val('os-motivo')+')':'OS fechada pelo Financeiro: '+money(total)+' em '+(parseInt(val('os-n'),10)||1)+' parcela(s)'});
+    toast(sem?'OS fechada sem cobrança.':'OS fechada e conta a receber gerada.');A.fechar();loadFin().catch(fail);}catch(e){fail(e);}},
+  osReabrir:async function(){try{if(!confirm('Reabrir esta OS para o Financeiro? As contas a receber existentes não são apagadas.'))return;var r=await sb.from('leads').update({status:'concluido',fechado_em:null,fechado_por:null}).eq('id',S.os.id);if(r.error)throw r.error;toast('OS reaberta.');A.fechar();loadFin().catch(fail);}catch(e){fail(e);}},
   cfiltro:function(){S.cf={q:val('cf-q'),cat:val('cf-cat'),ativo:val('cf-at')};renderClientes();var q=el('cf-q');if(q){q.focus();var v=q.value;q.value='';q.value=v;}},
   abrirCliente:function(id){abrirCliente(id).catch(fail);},
   novoCliente:function(){modal('<h2>Novo cliente</h2>'+formCliente(null)+'<div class="acts"><button class="btn" onclick="A.salvarCliente(null)">Cadastrar</button><button class="btn sec" onclick="A.fechar()">Cancelar</button></div>');},
