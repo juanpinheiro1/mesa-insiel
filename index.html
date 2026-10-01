@@ -48,6 +48,8 @@ tr.row{cursor:pointer}tr.row:hover{background:rgba(0,120,181,.05)}td b{color:var
 .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}.tabs button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-family:Sora,sans-serif;font-weight:600;font-size:12px;cursor:pointer;color:var(--gra)}.tabs button.on{background:var(--blue);border-color:var(--blue);color:#fff}
 .stale{color:var(--red2);font-weight:600}.doc{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}.doc .sp{flex:1}
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.sug{position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 10px 24px rgba(10,26,42,.14);z-index:5;max-height:260px;overflow:auto}.sug div{padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--line);font-size:13px}.sug div:hover{background:rgba(0,120,181,.06)}.sug b{color:var(--ink)}
+.cats label{margin-right:12px;font-size:13px}
 </style>
 </head>
 <body>
@@ -58,7 +60,7 @@ var SB_URL='https://puepmnyffpfjttxmwfjt.supabase.co';
 var SB_KEY='sb_publishable_adOrRULrgbg_K9EqYHKMdQ_c4NK4Vbe';
 var sb=window.supabase.createClient(SB_URL,SB_KEY,{db:{schema:'insiel'}});
 var BUCKET='insiel';
-var S={perfil:null,view:'dash',tipo:'orcamento',leads:[],usuarios:[],f:{divisao:'',status:'',perfil:'',q:''},lead:null,eventos:[],custos:null,comprasLead:[],crLead:[],finTab:'resumo',compras:[],cp:[],cr:[],ff:{status:'',q:''},compra:null,conta:null};
+var S={clientes:[],cf:{q:'',cat:'',ativo:'sim'},cliente:null,perfil:null,view:'dash',tipo:'orcamento',leads:[],usuarios:[],f:{divisao:'',status:'',perfil:'',q:''},lead:null,eventos:[],custos:null,comprasLead:[],crLead:[],finTab:'resumo',compras:[],cp:[],cr:[],ff:{status:'',q:''},compra:null,conta:null};
 var DIV={seguranca:'Segurança',solar:'Energia Solar',tecnologia:'Tecnologia',transito:'Trânsito'};
 var PERF={residencia:'Residência',empresa:'Empresa',industria:'Indústria',orgao_publico:'Órgão público'};
 var ST={novo:'Novo',em_contato:'Em contato',orcamento_enviado:'Orçamento enviado',convertido:'Convertido',descartado:'Descartado',concluido:'Concluído',faturado:'Faturado'};
@@ -69,6 +71,7 @@ var PRI={baixa:'Baixa',normal:'Normal',alta:'Alta',urgente:'Urgente'};
 var STC={pendente:'Pendente de aprovação',aprovada:'Aprovada',recusada:'Recusada'};
 var STCP={pendente:'Pendente',pago:'Pago',cancelado:'Cancelado'};
 var STCR={a_definir:'Valor a definir',aberto:'Em aberto',pago:'Pago',cancelado:'Cancelado'};
+var CAT={venda:'Venda',monitorado:'Monitorado',servicos:'Serviços'};
 var DOCT={cotacao:'Cotação',nota_fiscal:'Nota fiscal',boleto:'Boleto',comprovante:'Comprovante',outro:'Outro'};
 var WA_MSG={seguranca:'Olá {nome}! Aqui é da Insiel Segurança Eletrônica. Recebemos seu pedido pelo site e quero entender melhor o que você precisa.',solar:'Olá {nome}! Aqui é da Insiel Energia Solar. Recebemos sua simulação pelo site e quero confirmar alguns dados para montar sua proposta.',tecnologia:'Olá {nome}! Aqui é da área de projetos da Insiel. Recebemos seu contato pelo site e quero agendar uma conversa.',transito:'Olá {nome}! Aqui é da área de trânsito da Insiel. Recebemos seu contato pelo site sobre controle semafórico.'};
 var DET_LBL={servicos:'Serviços',sistema_existente:'Sistema existente',conta_luz:'Conta de luz',tipo_ligacao:'Ligação',orgao:'Órgão/empresa',cargo:'Cargo',necessidade:'Necessidade',mensagem:'Mensagem',problema:'Problema relatado',produto:'Produto'};
@@ -115,11 +118,11 @@ async function enter(){
 }
 function renderShell(){
   el('app').innerHTML='<header class="topbar"><div class="wrap">'+brand()+'<nav>'+
-  '<button id="nv-dash" onclick="go(&quot;dash&quot;)">Painel</button><button id="nv-orcamento" onclick="go(&quot;orcamento&quot;)">Orçamentos</button><button id="nv-chamado" onclick="go(&quot;chamado&quot;)">Chamados</button><button id="nv-contato" onclick="go(&quot;contato&quot;)">Contatos</button><button id="nv-fin" onclick="go(&quot;fin&quot;)">Financeiro</button><button id="nv-usuarios" onclick="go(&quot;usuarios&quot;)">Usuários</button></nav>'+
+  '<button id="nv-dash" onclick="go(&quot;dash&quot;)">Painel</button><button id="nv-orcamento" onclick="go(&quot;orcamento&quot;)">Orçamentos</button><button id="nv-chamado" onclick="go(&quot;chamado&quot;)">Chamados</button><button id="nv-contato" onclick="go(&quot;contato&quot;)">Contatos</button><button id="nv-fin" onclick="go(&quot;fin&quot;)">Financeiro</button><button id="nv-clientes" onclick="go(&quot;clientes&quot;)">Cadastro</button><button id="nv-usuarios" onclick="go(&quot;usuarios&quot;)">Usuários</button></nav>'+
   '<span class="who">'+esc(S.perfil.nome||S.perfil.email)+' · '+esc(S.perfil.papel)+'</span><button class="btn sec sm" onclick="A.sair()">Sair</button></div></header><main id="main"></main>';
 }
 function go(v){S.view=v;document.querySelectorAll('.topbar nav button').forEach(function(b){b.classList.toggle('on',b.id==='nv-'+v);});
-  if(v==='dash')loadDash().catch(fail);else if(v==='usuarios')loadUsuarios().catch(fail);else if(v==='fin')loadFin().catch(fail);else{S.tipo=v;loadLista().catch(fail);}}
+  if(v==='dash')loadDash().catch(fail);else if(v==='usuarios')loadUsuarios().catch(fail);else if(v==='fin')loadFin().catch(fail);else if(v==='clientes')loadClientes().catch(fail);else{S.tipo=v;loadLista().catch(fail);}}
 
 // ---------- PAINEL ----------
 async function loadDash(){
@@ -175,6 +178,7 @@ function renderLista(){
 async function novoChamado(){
   await usuarios();
   modal('<h2>Novo chamado técnico</h2><div class="frm">'+
+  '<div class="fld full" style="position:relative"><label>Buscar cliente cadastrado</label><input id="c-busca" placeholder="Digite o nome ou o código do cliente…" autocomplete="off" oninput="A.buscaCliente(this.value)"><div id="c-sug" class="sug" hidden></div><input type="hidden" id="c-cliid"><p class="note" id="c-clinfo"></p></div>'+
   '<div class="fld"><label>Cliente / titular *</label><input id="c-nome"></div><div class="fld"><label>WhatsApp *</label><input id="c-wa" type="tel" placeholder="(83) 9 9999-9999"></div>'+
   '<div class="fld full"><label>Endereço do imóvel</label><input id="c-end"></div><div class="fld"><label>Cidade *</label><input id="c-cid" value="Campina Grande"></div>'+
   '<div class="fld"><label>Sistema</label>'+sel('c-div',Object.keys(DIV).map(function(k){return [k,DIV[k]];}),'seguranca')+'</div>'+
@@ -203,7 +207,7 @@ function renderDetalhe(){
   var l=S.lead;var stmap=l.tipo==='chamado'?ST_CH:ST;var ch=l.tipo==='chamado';
   var h='<h2>'+esc(l.nome)+' '+chip(l.divisao,DIV[l.divisao]||l.divisao)+' '+chip(l.status,stLabel(l))+'</h2><p class="muted">'+esc(TIPO[l.tipo])+' · '+(l.pagina_origem==='mesa'?'aberto na Mesa por '+esc((l.criado_por||'').split('@')[0]):'recebido pelo site')+' em '+esc(dt(l.created_at))+' · '+esc(PERF[l.perfil]||'')+'</p>'+
   '<div class="det"><div><dl class="kv"><dt>WhatsApp</dt><dd><b>'+esc(fone(l.whatsapp))+'</b> <a class="btn wa sm" href="'+waLink(l)+'" target="_blank" rel="noopener" onclick="A.contato()">Abrir WhatsApp</a></dd>'+
-  '<dt>E-mail</dt><dd>'+(l.email?'<a href="mailto:'+esc(l.email)+'">'+esc(l.email)+'</a>':'—')+'</dd><dt>Cidade</dt><dd>'+esc(l.cidade||'—')+'</dd>'+(l.endereco?'<dt>Endereço</dt><dd>'+esc(l.endereco)+'</dd>':'')+detLista(l.detalhes)+
+  (l.cliente_id?'<dt>Cadastro</dt><dd><a href="#" onclick="A.fechar();A.abrirCliente(&quot;'+l.cliente_id+'&quot;);return false">Abrir cadastro do cliente</a></dd>':'')+'<dt>E-mail</dt><dd>'+(l.email?'<a href="mailto:'+esc(l.email)+'">'+esc(l.email)+'</a>':'—')+'</dd><dt>Cidade</dt><dd>'+esc(l.cidade||'—')+'</dd>'+(l.endereco?'<dt>Endereço</dt><dd>'+esc(l.endereco)+'</dd>':'')+detLista(l.detalhes)+
   '<dt>Origem</dt><dd>'+esc(l.pagina_origem||'—')+(l.utm_source?' · '+esc(l.utm_source)+'/'+esc(l.utm_medium||'')+'/'+esc(l.utm_campaign||''):'')+'</dd><dt>Último contato</dt><dd>'+esc(dt(l.ultimo_contato_em))+'</dd></dl>';
   if(ch){
     var k=S.custos||{};
@@ -338,6 +342,45 @@ function renderConta(){
   modal(h);
 }
 
+// ---------- CADASTRO DE CLIENTES ----------
+function catChip(k){return chip(k==='monitorado'?'seguranca':(k==='venda'?'solar':'tecnologia'),CAT[k]||k);}
+async function loadClientes(){
+  el('main').innerHTML='<div class="muted">Carregando…</div>';
+  var r=await sb.from('v_clientes').select('*').order('nome').limit(2000);if(r.error)throw r.error;S.clientes=r.data;renderClientes();
+}
+function renderClientes(){
+  var f=S.cf;var L=S.clientes.filter(function(c){return (f.ativo===''||(f.ativo==='sim')===!!c.ativo)&&(!f.cat||(c.categorias||[]).indexOf(f.cat)>-1)&&(!f.q||((c.nome||'')+' '+(c.nome_fantasia||'')+' '+(c.codigo_monitoramento||'')+' '+(c.cidade||'')+' '+(c.bairro||'')+' '+(c.cpf_cnpj||'')).toLowerCase().indexOf(f.q.toLowerCase())>-1);});
+  var h='<div class="hd"><h1>Clientes <span class="muted">'+L.length+'</span></h1><span class="sp"></span>'+(isAdmin()?'<button class="btn" onclick="A.novoCliente()">+ Novo cliente</button>':'')+'</div><div class="filters">'+
+  '<input id="cf-q" placeholder="Buscar nome, código, cidade, CNPJ…" value="'+esc(f.q)+'" oninput="A.cfiltro()">'+sel('cf-cat',[['','Todas as categorias']].concat(Object.keys(CAT).map(function(k){return [k,CAT[k]];})),f.cat,' onchange="A.cfiltro()"')+sel('cf-at',[['sim','Ativos'],['nao','Inativos'],['','Todos']],f.ativo,' onchange="A.cfiltro()"')+'</div>'+
+  '<div class="panel">'+(L.length?'<table><tr><th>Código</th><th>Nome</th><th>Categorias</th><th>Tipo</th><th>Cidade / bairro</th><th>Contato</th><th>Chamados</th></tr>'+L.map(function(c){return '<tr class="row" onclick="A.abrirCliente(&quot;'+c.id+'&quot;)"><td>'+esc(c.codigo_monitoramento||'—')+'</td><td><b>'+esc(c.nome)+'</b>'+(c.nome_fantasia?'<div class="muted">'+esc(c.nome_fantasia)+'</div>':'')+(c.ativo?'':' '+chip('descartado','inativo'))+'</td><td>'+(c.categorias||[]).map(catChip).join(' ')+'</td><td>'+esc(c.tipo||'—')+'</td><td>'+esc(c.cidade||'—')+(c.bairro?'<div class="muted">'+esc(c.bairro)+'</div>':'')+'</td><td>'+esc(c.telefones||c.tel_sim||'—')+(c.email?'<div class="muted">'+esc(c.email)+'</div>':'')+'</td><td>'+(c.n_chamados||0)+'</td></tr>';}).join('')+'</table>':'<div class="empty">Nenhum cliente.</div>')+'</div>';
+  el('main').innerHTML=h;
+}
+function formCliente(c){
+  c=c||{categorias:['monitorado'],ativo:true,uf:'PB',cidade:'CAMPINA GRANDE'};var dis=isAdmin()?'':' disabled';
+  function fld(id,label,v,o){o=o||{};return '<div class="fld'+(o.full?' full':'')+'"><label>'+label+'</label><input id="'+id+'" value="'+esc(v||'')+'"'+dis+(o.type?' type="'+o.type+'"':'')+'></div>';}
+  var h='<div class="frm">'+fld('x-nome','Nome / razão social *',c.nome,{full:true})+fld('x-fant','Nome fantasia',c.nome_fantasia)+fld('x-cod','Código no monitoramento',c.codigo_monitoramento)+
+  '<div class="fld full"><label>Categorias</label><div class="cats">'+Object.keys(CAT).map(function(k){return '<label><input type="checkbox" class="x-cat" value="'+k+'"'+((c.categorias||[]).indexOf(k)>-1?' checked':'')+dis+'> '+CAT[k]+'</label>';}).join('')+'</div></div>'+
+  '<div class="fld"><label>Tipo</label>'+sel('x-tipo',[['',''],['COMÉRCIO','Comércio'],['RESIDÊNCIA','Residência'],['INDÚSTRIA','Indústria'],['CONDOMÍNIO','Condomínio'],['COOPERATIVA','Cooperativa'],['ÓRGÃO PÚBLICO','Órgão público'],['OUTRO','Outro']],c.tipo||'',dis)+'</div>'+
+  '<div class="fld"><label>Pessoa</label>'+sel('x-pessoa',[['',''],['PF','Física'],['PJ','Jurídica']],c.pessoa||'',dis)+'</div>'+fld('x-doc','CPF / CNPJ',c.cpf_cnpj)+fld('x-rgie','RG / Inscrição estadual',c.rg_ie)+
+  fld('x-tel','Telefones',c.telefones)+fld('x-email','E-mail',c.email,{type:'email'})+fld('x-contato','Pessoa de contato',c.contato)+fld('x-rel','Relatório por e-mail',c.relatorio_email)+
+  fld('x-end','Endereço',c.endereco,{full:true})+fld('x-num','Número',c.numero)+fld('x-bairro','Bairro',c.bairro)+fld('x-cep','CEP',c.cep)+fld('x-cid','Cidade',c.cidade)+fld('x-uf','UF',c.uf)+
+  fld('x-sim','SIM card 1',c.sim_card)+fld('x-telsim','Telefone SIM 1',c.tel_sim)+fld('x-sim2','SIM card 2',c.sim_card2)+fld('x-telsim2','Telefone SIM 2',c.tel_sim2)+
+  '<div class="fld full"><label>Observações</label><textarea id="x-obs"'+dis+'>'+esc(c.observacoes||'')+'</textarea></div></div>';
+  if(c.horarios&&Object.keys(c.horarios).length)h+='<p class="note">Alarme desarmado: '+esc(Object.keys(c.horarios).map(function(k){return k+' '+c.horarios[k];}).join(' · '))+'</p>';
+  return h;
+}
+async function abrirCliente(id){
+  var r=await sb.from('v_clientes').select('*').eq('id',id).single();if(r.error)throw r.error;S.cliente=r.data;
+  var ch=await sb.from('leads').select('id,created_at,status,divisao,prioridade,detalhes').eq('cliente_id',id).order('created_at',{ascending:false}).limit(30);
+  var c=S.cliente;var adm=isAdmin();
+  var h='<h2>'+esc(c.nome)+' '+(c.categorias||[]).map(catChip).join(' ')+(c.ativo?'':' '+chip('descartado','Inativo'))+'</h2><p class="muted">'+(c.codigo_monitoramento?'Código '+esc(c.codigo_monitoramento)+' · ':'')+'cadastrado em '+esc(dd(c.data_cadastro_origem||c.created_at))+(c.origem==='monitoramento_pdf'?' · importado do sistema de monitoramento':'')+'</p>'+formCliente(c)+
+  '<div class="acts">'+(adm?'<button class="btn" onclick="A.salvarCliente(&quot;'+c.id+'&quot;)">Salvar</button><button class="btn sec" onclick="A.ativarCliente(&quot;'+c.id+'&quot;,'+(!c.ativo)+')">'+(c.ativo?'Inativar':'Reativar')+'</button>':'')+'<button class="btn sec" onclick="A.novoChamadoDe()">Abrir chamado para este cliente</button></div>';
+  h+='<div class="sec-t">Chamados deste cliente</div>'+((ch.data||[]).length?'<table><tr><th>Data</th><th>Serviço</th><th>Status</th></tr>'+ch.data.map(function(l){return '<tr class="row" onclick="A.fechar();A.abrir(&quot;'+l.id+'&quot;)"><td>'+esc(dd(l.created_at))+'</td><td>'+esc((l.detalhes&&l.detalhes.problema)||'')+'</td><td>'+chip(l.status,ST_CH[l.status]||l.status)+'</td></tr>';}).join('')+'</table>':'<p class="muted">Nenhum chamado vinculado.</p>');
+  modal(h);
+}
+function lerFormCliente(){var cats=[].slice.call(document.querySelectorAll('.x-cat:checked')).map(function(x){return x.value;});
+  return {nome:val('x-nome'),nome_fantasia:val('x-fant')||null,codigo_monitoramento:val('x-cod')||null,categorias:cats,tipo:val('x-tipo')||null,pessoa:val('x-pessoa')||null,cpf_cnpj:val('x-doc')||null,rg_ie:val('x-rgie')||null,telefones:val('x-tel')||null,email:val('x-email')||null,contato:val('x-contato')||null,relatorio_email:val('x-rel')||null,endereco:val('x-end')||null,numero:val('x-num')||null,bairro:val('x-bairro')||null,cep:val('x-cep')||null,cidade:val('x-cid')||null,uf:val('x-uf')||null,sim_card:val('x-sim')||null,tel_sim:val('x-telsim')||null,sim_card2:val('x-sim2')||null,tel_sim2:val('x-telsim2')||null,observacoes:val('x-obs')||null};}
+
 // ---------- USUÁRIOS ----------
 async function loadUsuarios(){
   var r=await sb.from('usuarios').select('*').order('created_at');if(r.error)throw r.error;S.usuarios=r.data.filter(function(u){return u.ativo;});
@@ -368,7 +411,7 @@ window.A={
   novoChamado:function(){novoChamado().catch(fail);},novaCompra:function(id){novaCompra(id).catch(fail);},
   fechar:function(){var m=el('modalbg');if(m)m.remove();},
   salvarChamado:async function(){try{var nome=val('c-nome'),wa=val('c-wa').replace(/\D/g,''),prob=val('c-prob');if(!nome)throw new Error('Informe o cliente.');if(wa.length<10)throw new Error('Informe um WhatsApp com DDD.');if(!prob)throw new Error('Descreva o problema ou serviço.');
-    var r=await sb.from('leads').insert({tipo:'chamado',divisao:val('c-div'),perfil:val('c-perf'),nome:nome,whatsapp:wa,email:val('c-email')||null,cidade:val('c-cid')||null,endereco:val('c-end')||null,detalhes:{problema:prob},pagina_origem:'mesa',criado_por:S.perfil.email,prioridade:val('c-pri'),responsavel:val('c-resp')||null,data_visita:val('c-vis')||null,consentimento_lgpd:true}).select('id').single();if(r.error)throw r.error;
+    var r=await sb.from('leads').insert({tipo:'chamado',cliente_id:val('c-cliid')||null,divisao:val('c-div'),perfil:val('c-perf'),nome:nome,whatsapp:wa,email:val('c-email')||null,cidade:val('c-cid')||null,endereco:val('c-end')||null,detalhes:{problema:prob},pagina_origem:'mesa',criado_por:S.perfil.email,prioridade:val('c-pri'),responsavel:val('c-resp')||null,data_visita:val('c-vis')||null,consentimento_lgpd:true}).select('id').single();if(r.error)throw r.error;
     await sb.from('lead_eventos').insert({lead_id:r.data.id,tipo:'sistema',texto:'Chamado aberto pela Mesa'});toast('Chamado aberto.');A.fechar();S.tipo='chamado';if(S.view!=='chamado')go('chamado');else loadLista().catch(fail);}catch(e){fail(e);}},
   salvar:async function(){try{var l=S.lead;var up={status:val('d-st'),responsavel:val('d-resp')||null,prioridade:val('d-pri'),data_visita:val('d-vis')||null,observacoes:val('d-obs')||null,motivo_descarte:val('d-st')==='descartado'?(val('d-mot')||null):null};if(el('d-end'))up.endereco=val('d-end')||null;
     var r=await sb.from('leads').update(up).eq('id',l.id);if(r.error)throw r.error;toast(up.status==='concluido'&&l.status!=='concluido'?'Chamado concluído e enviado à cobrança.':'Salvo.');A.fechar();if(S.view==='dash')loadDash().catch(fail);else if(S.view==='fin')loadFin().catch(fail);else loadLista().catch(fail);}catch(e){fail(e);}},
@@ -404,6 +447,15 @@ window.A={
     for(var i=1;i<n;i++){var d=new Date(v0+'T12:00:00');d.setMonth(d.getMonth()+i);rows.push({chamado_id:r0.chamado_id,cliente:r0.cliente,parcela:i+1,total_parcelas:n,valor:(i===n-1?cents-each*(n-1):each)/100,vencimento:ymd(d),status:'aberto',forma:val('r-forma')||null});}
     var r=await sb.from('contas_receber').update({parcela:1,total_parcelas:n,valor:each/100,vencimento:v0,status:'aberto',forma:val('r-forma')||null}).eq('id',r0.id);if(r.error)throw r.error;
     var r2=await sb.from('contas_receber').insert(rows);if(r2.error)throw r2.error;toast('Conta dividida em '+n+' parcelas.');A.fechar();loadFin().catch(fail);}catch(e){fail(e);}},
+  cfiltro:function(){S.cf={q:val('cf-q'),cat:val('cf-cat'),ativo:val('cf-at')};renderClientes();var q=el('cf-q');if(q){q.focus();var v=q.value;q.value='';q.value=v;}},
+  abrirCliente:function(id){abrirCliente(id).catch(fail);},
+  novoCliente:function(){modal('<h2>Novo cliente</h2>'+formCliente(null)+'<div class="acts"><button class="btn" onclick="A.salvarCliente(null)">Cadastrar</button><button class="btn sec" onclick="A.fechar()">Cancelar</button></div>');},
+  salvarCliente:async function(id){try{var d=lerFormCliente();if(!d.nome)throw new Error('Informe o nome.');if(!d.categorias.length)throw new Error('Marque ao menos uma categoria.');var r=id?await sb.from('clientes').update(d).eq('id',id):await sb.from('clientes').insert(d);if(r.error)throw r.error;toast('Cliente salvo.');A.fechar();if(S.view==='clientes')loadClientes().catch(fail);}catch(e){fail(e);}},
+  ativarCliente:async function(id,ativo){try{var r=await sb.from('clientes').update({ativo:ativo}).eq('id',id);if(r.error)throw r.error;toast(ativo?'Cliente reativado.':'Cliente inativado.');A.fechar();loadClientes().catch(fail);}catch(e){fail(e);}},
+  buscaCliente:async function(q){var box=el('c-sug');if(!box)return;q=(q||'').trim();if(q.length<2){box.hidden=true;return;}var r=await sb.schema('public').rpc('insiel_buscar_clientes',{q:q});if(r.error||!r.data||!r.data.length){box.hidden=true;return;}
+    S.sug=r.data;box.innerHTML=r.data.map(function(c,i){return '<div onclick="A.escolheCliente('+i+')"><b>'+esc(c.nome)+'</b> <span class="muted">'+esc(c.codigo_monitoramento||'')+' · '+esc(c.bairro||'')+' '+esc(c.cidade||'')+'</span></div>';}).join('');box.hidden=false;},
+  escolheCliente:function(i){var c=typeof i==='number'?S.sug[i]:i;if(!c)return;el('c-cliid').value=c.id;el('c-nome').value=c.nome;if(c.telefones)el('c-wa').value=c.telefones;el('c-end').value=[c.endereco,c.numero].filter(Boolean).join(', ')+(c.bairro?' - '+c.bairro:'');if(c.cidade)el('c-cid').value=c.cidade;el('c-busca').value=c.nome;el('c-sug').hidden=true;el('c-clinfo').textContent='Cliente cadastrado'+(c.codigo_monitoramento?' · código '+c.codigo_monitoramento:'')+' · '+(c.categorias||[]).map(function(k){return CAT[k]||k;}).join(', ');},
+  novoChamadoDe:async function(){try{var c=S.cliente;A.fechar();await novoChamado();if(c)A.escolheCliente({id:c.id,nome:c.nome,telefones:c.telefones||c.tel_sim,endereco:c.endereco,numero:c.numero,bairro:c.bairro,cidade:c.cidade,codigo_monitoramento:c.codigo_monitoramento,categorias:c.categorias});}catch(e){fail(e);}},
   addUser:async function(){try{var em=val('u-email').toLowerCase();if(!em)throw new Error('Informe o e-mail.');var r=await sb.from('usuarios').insert({email:em,nome:val('u-nome')||null,papel:val('u-papel')});if(r.error)throw r.error;toast('Usuário autorizado.');S.usuarios=[];loadUsuarios().catch(fail);}catch(e){fail(e);}},
   papel:async function(em,p){try{var r=await sb.from('usuarios').update({papel:p}).eq('email',em);if(r.error)throw r.error;toast('Papel atualizado.');}catch(e){fail(e);}},
   toggleUser:async function(em,ativo){try{var r=await sb.from('usuarios').update({ativo:ativo}).eq('email',em);if(r.error)throw r.error;S.usuarios=[];loadUsuarios().catch(fail);}catch(e){fail(e);}}
