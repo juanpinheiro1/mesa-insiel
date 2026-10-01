@@ -61,7 +61,7 @@ var SB_URL='https://puepmnyffpfjttxmwfjt.supabase.co';
 var SB_KEY='sb_publishable_adOrRULrgbg_K9EqYHKMdQ_c4NK4Vbe';
 var sb=window.supabase.createClient(SB_URL,SB_KEY,{db:{schema:'insiel'}});
 var BUCKET='insiel';
-var S={clientes:[],cf:{q:'',cat:'',ativo:'sim'},cliente:null,perfil:null,view:'dash',tipo:'orcamento',leads:[],usuarios:[],f:{divisao:'',status:'',perfil:'',q:''},lead:null,eventos:[],custos:null,comprasLead:[],crLead:[],finTab:'resumo',compras:[],cp:[],cr:[],ff:{status:'',q:''},compra:null,conta:null};
+var S={funcionarios:[],funcAtivos:[],equipeMap:{},clientes:[],cf:{q:'',cat:'',ativo:'sim'},cliente:null,perfil:null,view:'dash',tipo:'orcamento',leads:[],usuarios:[],f:{divisao:'',status:'',perfil:'',q:''},lead:null,eventos:[],custos:null,comprasLead:[],crLead:[],finTab:'resumo',compras:[],cp:[],cr:[],ff:{status:'',q:''},compra:null,conta:null};
 var DIV={seguranca:'Segurança',solar:'Energia Solar',tecnologia:'Tecnologia',transito:'Trânsito'};
 var PERF={residencia:'Residência',empresa:'Empresa',industria:'Indústria',orgao_publico:'Órgão público'};
 var ST={novo:'Novo',em_contato:'Em contato',orcamento_enviado:'Orçamento enviado',convertido:'Convertido',descartado:'Descartado',concluido:'Concluído',faturado:'Faturado',fechado:'Fechado'};
@@ -99,6 +99,11 @@ function modal(html,small){var m=el('modalbg');if(m)m.remove();document.body.ins
 function atras(r){return r.status!=='pago'&&r.status!=='cancelado'&&r.status!=='a_definir'&&r.vencimento&&r.vencimento<today();}
 function chipCp(r){return atras(r)?chip('atrasado','Atrasado'):chip(r.status,STCP[r.status]||r.status);}
 function chipCr(r){return atras(r)?chip('atrasado','Atrasado'):chip(r.status,STCR[r.status]||r.status);}
+async function funcionarios(){if(!S.funcAtivos.length){var r=await sb.from('funcionarios').select('id,nome,funcao').eq('ativo',true).order('nome');if(!r.error)S.funcAtivos=r.data;}return S.funcAtivos;}
+async function equipeMap(ids){var r=await sb.from('v_os_equipe').select('*').in('lead_id',ids);var m={};(r.data||[]).forEach(function(x){m[x.lead_id]=x;});S.equipeMap=m;return m;}
+function equipeChips(sel,pre){sel=sel||[];return '<div class="chips" id="'+pre+'-eq">'+S.funcAtivos.map(function(f){return '<label class="chip"><input type="checkbox" name="'+pre+'-func" value="'+f.id+'"'+(sel.indexOf(f.id)>-1?' checked':'')+'><span>'+esc(f.nome)+(f.funcao?' <span class="muted">· '+esc(f.funcao)+'</span>':'')+'</span></label>';}).join('')+(S.funcAtivos.length?'':'<span class="muted">Nenhum funcionário cadastrado (Cadastro › Funcionários).</span>')+'</div>';}
+function equipeSel(pre){return [].slice.call(document.querySelectorAll('input[name="'+pre+'-func"]:checked')).map(function(x){return x.value;});}
+async function salvarEquipe(leadId,ids,antes){var a=(antes||[]).slice().sort().join(),b=ids.slice().sort().join();if(a===b)return false;await sb.from('os_funcionarios').delete().eq('lead_id',leadId);if(ids.length){var r=await sb.from('os_funcionarios').insert(ids.map(function(f){return {lead_id:leadId,funcionario_id:f};}));if(r.error)throw r.error;}var nomes=S.funcAtivos.filter(function(f){return ids.indexOf(f.id)>-1;}).map(function(f){return f.nome;});await sb.from('lead_eventos').insert({lead_id:leadId,tipo:'atribuicao',texto:'Equipe: '+(nomes.join(', ')||'(ninguém)')});return true;}
 async function usuarios(){if(!S.usuarios.length){var u=await sb.from('usuarios').select('*').eq('ativo',true);if(!u.error)S.usuarios=u.data;}return S.usuarios;}
 
 // ---------- AUTH ----------
@@ -119,11 +124,11 @@ async function enter(){
 }
 function renderShell(){
   el('app').innerHTML='<header class="topbar"><div class="wrap">'+brand()+'<nav>'+
-  '<span class="grp"><button id="nv-dash" onclick="go(&quot;dash&quot;)">Painel ▾</button><span class="sub"><button id="nv-dash2" onclick="go(&quot;dash&quot;)">Resumo</button><button id="nv-orcamento" onclick="go(&quot;orcamento&quot;)">Orçamentos</button><button id="nv-contato" onclick="go(&quot;contato&quot;)">Contatos</button></span></span><button id="nv-chamado" onclick="go(&quot;chamado&quot;)">Ordens de Serviço</button><span class="grp"><button id="nv-fin" onclick="A.goFin(&quot;resumo&quot;)">Financeiro ▾</button><span class="sub"><button id="nv-fin-resumo" onclick="A.goFin(&quot;resumo&quot;)">Painel financeiro</button><button id="nv-fin-compras" onclick="A.goFin(&quot;compras&quot;)">Compras</button><button id="nv-fin-receber" onclick="A.goFin(&quot;receber&quot;)">Contas a Receber</button><button id="nv-fin-pagar" onclick="A.goFin(&quot;pagar&quot;)">Contas a Pagar</button></span></span><button id="nv-clientes" onclick="go(&quot;clientes&quot;)">Cadastro</button><button id="nv-usuarios" onclick="go(&quot;usuarios&quot;)">Usuários</button></nav>'+
-  '<span class="who">'+esc(S.perfil.nome||S.perfil.email)+' · '+esc(S.perfil.papel)+' · v4.1</span><button class="btn sec sm" onclick="A.sair()">Sair</button></div></header><main id="main"></main>';
+  '<span class="grp"><button id="nv-dash" onclick="go(&quot;dash&quot;)">Painel ▾</button><span class="sub"><button id="nv-dash2" onclick="go(&quot;dash&quot;)">Resumo</button><button id="nv-orcamento" onclick="go(&quot;orcamento&quot;)">Orçamentos</button><button id="nv-contato" onclick="go(&quot;contato&quot;)">Contatos</button></span></span><button id="nv-chamado" onclick="go(&quot;chamado&quot;)">Ordens de Serviço</button><span class="grp"><button id="nv-fin" onclick="A.goFin(&quot;resumo&quot;)">Financeiro ▾</button><span class="sub"><button id="nv-fin-resumo" onclick="A.goFin(&quot;resumo&quot;)">Painel financeiro</button><button id="nv-fin-compras" onclick="A.goFin(&quot;compras&quot;)">Compras</button><button id="nv-fin-receber" onclick="A.goFin(&quot;receber&quot;)">Contas a Receber</button><button id="nv-fin-pagar" onclick="A.goFin(&quot;pagar&quot;)">Contas a Pagar</button></span></span><span class="grp"><button id="nv-cad" onclick="go(&quot;clientes&quot;)">Cadastro ▾</button><span class="sub"><button id="nv-clientes" onclick="go(&quot;clientes&quot;)">Clientes</button><button id="nv-funcionarios" onclick="go(&quot;funcionarios&quot;)">Funcionários</button></span></span><button id="nv-usuarios" onclick="go(&quot;usuarios&quot;)">Usuários</button></nav>'+
+  '<span class="who">'+esc(S.perfil.nome||S.perfil.email)+' · '+esc(S.perfil.papel)+' · v4.2</span><button class="btn sec sm" onclick="A.sair()">Sair</button></div></header><main id="main"></main>';
 }
-function go(v){S.view=v;document.querySelectorAll('.topbar nav button').forEach(function(b){b.classList.toggle('on',b.id==='nv-'+v||(b.id==='nv-dash'&&(v==='dash'||v==='orcamento'||v==='contato'))||(b.id==='nv-dash2'&&v==='dash')||(v==='fin'&&b.id==='nv-fin-'+S.finTab));});
-  if(v==='dash')loadDash().catch(fail);else if(v==='usuarios')loadUsuarios().catch(fail);else if(v==='fin')loadFin().catch(fail);else if(v==='clientes')loadClientes().catch(fail);else{S.tipo=v;loadLista().catch(fail);}}
+function go(v){S.view=v;document.querySelectorAll('.topbar nav button').forEach(function(b){b.classList.toggle('on',b.id==='nv-'+v||(b.id==='nv-dash'&&(v==='dash'||v==='orcamento'||v==='contato'))||(b.id==='nv-dash2'&&v==='dash')||(v==='fin'&&b.id==='nv-fin-'+S.finTab)||(b.id==='nv-cad'&&(v==='clientes'||v==='funcionarios')));});
+  if(v==='dash')loadDash().catch(fail);else if(v==='usuarios')loadUsuarios().catch(fail);else if(v==='fin')loadFin().catch(fail);else if(v==='clientes')loadClientes().catch(fail);else if(v==='funcionarios')loadFuncionarios().catch(fail);else{S.tipo=v;loadLista().catch(fail);}}
 
 // ---------- PAINEL ----------
 async function loadDash(){
@@ -151,7 +156,7 @@ function tabela(L){
   if(!L.length)return '<div class="empty">Nenhum registro.</div>';
   var h='<table><tr><th>Recebido</th><th>Nome</th><th>Divisão</th><th>Perfil</th><th>Cidade</th><th>Status</th><th>Responsável</th><th></th></tr>';
   L.forEach(function(l){var st=l.status==='novo'&&Date.now()-new Date(l.created_at)>864e5;
-    h+='<tr class="row" onclick="A.abrir(&quot;'+l.id+'&quot;)"><td'+(st?' class="stale"':'')+'>'+esc(ago(l.created_at))+'<div class="muted">'+esc(dt(l.created_at))+'</div></td><td><b>'+esc(l.nome)+'</b><div class="muted">'+esc(fone(l.whatsapp))+(l.tipo!=='orcamento'?' · '+esc(TIPO[l.tipo]):'')+'</div></td><td>'+chip(l.divisao,DIV[l.divisao]||l.divisao)+'</td><td>'+esc(PERF[l.perfil]||'—')+'</td><td>'+esc(l.cidade||'—')+'</td><td>'+chip(l.status,stLabel(l))+(l.prioridade&&l.prioridade!=='normal'?' '+chip(l.prioridade,PRI[l.prioridade]):'')+'</td><td>'+esc((l.responsavel||'—').split('@')[0])+'</td><td><a class="btn wa sm" href="'+waLink(l)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">WhatsApp</a></td></tr>';});
+    h+='<tr class="row" onclick="A.abrir(&quot;'+l.id+'&quot;)"><td'+(st?' class="stale"':'')+'>'+esc(ago(l.created_at))+'<div class="muted">'+esc(dt(l.created_at))+'</div></td><td><b>'+esc(l.nome)+'</b><div class="muted">'+esc(fone(l.whatsapp))+(l.tipo!=='orcamento'?' · '+esc(TIPO[l.tipo]):'')+'</div></td><td>'+chip(l.divisao,DIV[l.divisao]||l.divisao)+'</td><td>'+esc(PERF[l.perfil]||'—')+'</td><td>'+esc(l.cidade||'—')+'</td><td>'+chip(l.status,stLabel(l))+(l.prioridade&&l.prioridade!=='normal'?' '+chip(l.prioridade,PRI[l.prioridade]):'')+'</td><td>'+esc((l.responsavel||'—').split('@')[0])+(l.tipo==='chamado'&&S.equipeMap[l.id]?'<div class="muted">'+esc(S.equipeMap[l.id].equipe)+'</div>':'')+'</td><td><a class="btn wa sm" href="'+waLink(l)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">WhatsApp</a></td></tr>';});
   return h+'</table>';
 }
 
@@ -159,7 +164,7 @@ function tabela(L){
 async function loadLista(){
   el('main').innerHTML='<div class="muted">Carregando…</div>';
   var r=await sb.from('leads').select('*').eq('tipo',S.tipo).order('created_at',{ascending:false}).limit(500);
-  if(r.error)throw r.error;S.leads=r.data;renderLista();
+  if(r.error)throw r.error;S.leads=r.data;if(S.tipo==='chamado'){await equipeMap(r.data.map(function(l){return l.id;}));}renderLista();
 }
 function renderLista(){
   var f=S.f;var L=S.leads.filter(function(l){return (!f.divisao||l.divisao===f.divisao)&&(!f.status||l.status===f.status)&&(!f.perfil||l.perfil===f.perfil)&&(!f.q||(l.nome+' '+l.cidade+' '+l.whatsapp+' '+JSON.stringify(l.detalhes)).toLowerCase().indexOf(f.q.toLowerCase())>-1);});
@@ -177,7 +182,7 @@ function renderLista(){
 
 // ---------- NOVO CHAMADO ----------
 async function novoChamado(){
-  await usuarios();
+  await usuarios();await funcionarios();
   modal('<h2>Nova ordem de serviço</h2><div class="frm">'+
   '<div class="fld full" style="position:relative"><label>Buscar cliente cadastrado</label><input id="c-busca" placeholder="Digite o nome ou o código do cliente…" autocomplete="off" oninput="A.buscaCliente(this.value)"><div id="c-sug" class="sug" hidden></div><input type="hidden" id="c-cliid"><p class="note" id="c-clinfo"></p></div>'+
   '<div class="fld"><label>Cliente / titular *</label><input id="c-nome"></div><div class="fld"><label>WhatsApp *</label><input id="c-wa" type="tel" placeholder="(83) 9 9999-9999"></div>'+
@@ -187,6 +192,7 @@ async function novoChamado(){
   '<div class="fld"><label>Prioridade</label>'+sel('c-pri',Object.keys(PRI).map(function(k){return [k,PRI[k]];}),'normal')+'</div>'+
   '<div class="fld"><label>Responsável</label>'+sel('c-resp',[['','(ninguém)']].concat(S.usuarios.map(function(u){return [u.email,u.nome||u.email];})),S.perfil.email)+'</div>'+
   '<div class="fld"><label>Visita / atendimento</label><input id="c-vis" type="date"></div>'+
+  '<div class="fld full"><label>Equipe que vai executar</label>'+equipeChips([],'c')+'</div>'+
   '<div class="fld full"><label>Problema / serviço a executar *</label><textarea id="c-prob"></textarea></div>'+
   '<div class="fld full"><label>E-mail do cliente</label><input id="c-email" type="email"></div></div>'+
   '<div class="acts"><button class="btn" onclick="A.salvarChamado()">Abrir OS</button><button class="btn sec" onclick="A.fechar()">Cancelar</button></div>');
@@ -198,6 +204,7 @@ async function abrir(id){
   var e=await sb.from('lead_eventos').select('*').eq('lead_id',id).order('created_at',{ascending:false});if(e.error)throw e.error;S.eventos=e.data;
   await usuarios();
   if(S.lead.tipo==='chamado'){
+    await funcionarios();var eqr=await sb.from('os_funcionarios').select('funcionario_id').eq('lead_id',id);S.leadEquipe=(eqr.data||[]).map(function(x){return x.funcionario_id;});
     var dd0=await sb.from('documentos').select('*').eq('entidade','chamado').eq('entidade_id',id).order('created_at');S.docsLead=dd0.data||[];
     var c=await sb.from('v_compras').select('*').eq('chamado_id',id).order('created_at');S.comprasLead=c.data||[];
     var k=await sb.from('v_chamado_custos').select('*').eq('chamado_id',id).maybeSingle();S.custos=k.data||null;
@@ -225,7 +232,7 @@ function renderDetalhe(){
   '<div class="fld"><label>Responsável</label>'+sel('d-resp',[['','(ninguém)']].concat(S.usuarios.map(function(u){return [u.email,u.nome||u.email];})),l.responsavel||'')+'</div>'+
   '<div class="fld"><label>Prioridade</label>'+sel('d-pri',Object.keys(PRI).map(function(k){return [k,PRI[k]];}),l.prioridade||'normal')+'</div>'+
   '<div class="fld"><label>Visita / atendimento</label><input id="d-vis" type="date" value="'+esc(l.data_visita||'')+'"></div>'+
-  (ch?'<div class="fld"><label>Endereço</label><input id="d-end" value="'+esc(l.endereco||'')+'"></div><div class="fld"><label>Valor da proposta (R$)</label><input id="d-prop" value="'+(l.valor_proposta!=null?esc(Number(l.valor_proposta).toLocaleString('pt-BR',{minimumFractionDigits:2})):'')+'" placeholder="0,00"></div>':'')+
+  (ch?'<div class="fld full"><label>Equipe que executa</label>'+equipeChips(S.leadEquipe||[],'d')+'</div><div class="fld"><label>Endereço</label><input id="d-end" value="'+esc(l.endereco||'')+'"></div><div class="fld"><label>Valor da proposta (R$)</label><input id="d-prop" value="'+(l.valor_proposta!=null?esc(Number(l.valor_proposta).toLocaleString('pt-BR',{minimumFractionDigits:2})):'')+'" placeholder="0,00"></div>':'')+
   '<div class="fld full"><label>Observações fixas</label><textarea id="d-obs">'+esc(l.observacoes||'')+'</textarea></div></div>'+
   '<div class="acts"><button class="btn" onclick="A.salvar()">Salvar</button><button class="btn sec" onclick="A.contato()">Registrar contato agora</button></div>'+
   (ch&&(l.status==='novo'||l.status==='em_contato')?'<p class="note" style="margin-top:10px">Ao concluir o serviço, mude o status para <b>Concluída</b>: a OS vai para a fila "O.S. a finalizar" do Financeiro.</p>':'')+
@@ -266,7 +273,7 @@ function finResumo(){
   '<div class="kpi warn" onclick="A.finTab(&quot;compras&quot;)"><b>'+S.compras.filter(function(c){return c.status==='pendente';}).length+'</b><span>Compras aguardando aprovação</span></div>'+
   '<div class="kpi" onclick="A.finTab(&quot;compras&quot;)"><b>'+S.compras.filter(function(c){return c.status==='aprovada'&&(!c.tem_nf||!c.n_parcelas);}).length+'</b><span>Compras aprovadas sem NF ou parcelas</span></div></div>';
   var OF=S.osFin||[];
-  h+='<div class="panel" id="os-fin"><h2>O.S. a finalizar <span class="muted">concluídas pela equipe técnica, aguardando fechamento do Financeiro</span></h2>'+(OF.length?'<table><tr><th>Concluída em</th><th>Cliente</th><th>Serviço</th><th>Técnico</th><th class="num">Custo compras</th><th class="num">Itens lançados</th><th></th></tr>'+OF.map(function(o){return '<tr class="row" onclick="A.fecharOS(&quot;'+o.id+'&quot;)"><td>'+esc(dd(o.concluido_em||o.created_at))+'<div class="muted">'+esc((o.concluido_por||'').split('@')[0])+'</div></td><td><b>'+esc(o.nome)+'</b><div class="muted">'+esc(o.cidade||'')+'</div></td><td>'+esc((o.detalhes&&o.detalhes.problema)||'')+'</td><td>'+esc((o.responsavel||'—').split('@')[0])+'</td><td class="num money">'+money(o.custo_aprovado)+(o.compras_pendentes>0?' '+chip('pendente',o.compras_pendentes+' compra(s) pendente(s)'):'')+'</td><td class="num money">'+money(o.total_itens)+'</td><td>'+(isFin()?'<button class="btn sm" onclick="event.stopPropagation();A.fecharOS(&quot;'+o.id+'&quot;)">Finalizar</button>':'')+'</td></tr>';}).join('')+'</table>':'<div class="empty">Nenhuma OS aguardando fechamento.</div>')+'</div>';
+  h+='<div class="panel" id="os-fin"><h2>O.S. a finalizar <span class="muted">concluídas pela equipe técnica, aguardando fechamento do Financeiro</span></h2>'+(OF.length?'<table><tr><th>Concluída em</th><th>Cliente</th><th>Serviço</th><th>Técnico</th><th class="num">Custo compras</th><th class="num">Itens lançados</th><th></th></tr>'+OF.map(function(o){return '<tr class="row" onclick="A.fecharOS(&quot;'+o.id+'&quot;)"><td>'+esc(dd(o.concluido_em||o.created_at))+'<div class="muted">'+esc((o.concluido_por||'').split('@')[0])+'</div></td><td><b>'+esc(o.nome)+'</b><div class="muted">'+esc(o.cidade||'')+'</div></td><td>'+esc((o.detalhes&&o.detalhes.problema)||'')+'</td><td>'+esc(o.equipe||(o.responsavel||'—').split('@')[0])+'</td><td class="num money">'+money(o.custo_aprovado)+(o.compras_pendentes>0?' '+chip('pendente',o.compras_pendentes+' compra(s) pendente(s)'):'')+'</td><td class="num money">'+money(o.total_itens)+'</td><td>'+(isFin()?'<button class="btn sm" onclick="event.stopPropagation();A.fecharOS(&quot;'+o.id+'&quot;)">Finalizar</button>':'')+'</td></tr>';}).join('')+'</table>':'<div class="empty">Nenhuma OS aguardando fechamento.</div>')+'</div>';
   var pend=S.compras.filter(function(c){return c.status==='pendente';});
   h+='<div class="panel"><h2>Compras aguardando aprovação'+(isAdmin()?'':' <span class="muted">(aprovação é do administrador)</span>')+'</h2>'+(pend.length?tabCompras(pend):'<div class="empty">Nenhuma.</div>')+'</div>';
   var prox=cpAb.filter(function(r){return r.vencimento<=d7;});
@@ -341,7 +348,7 @@ async function fecharOS(id){
 function osTotal(){return S.os.itens.reduce(function(t,i){return t+Math.round((Number(i.quantidade)||0)*(Number(i.valor_unit)||0)*100)/100;},0);}
 function renderFecharOS(){
   var o=S.os;var fin=isFin();var aberta=o.status==='concluido';var ed=fin&&aberta;
-  var h='<h2>Fechamento da OS: '+esc(o.nome)+' '+chip(o.status,ST_CH[o.status]||o.status)+'</h2><p class="muted">'+esc((o.detalhes&&o.detalhes.problema)||'')+' · '+esc(o.cidade||'')+' · técnico '+esc((o.responsavel||'—').split('@')[0])+' · concluída em '+esc(dt(o.concluido_em))+'</p>';
+  var h='<h2>Fechamento da OS: '+esc(o.nome)+' '+chip(o.status,ST_CH[o.status]||o.status)+'</h2><p class="muted">'+esc((o.detalhes&&o.detalhes.problema)||'')+' · '+esc(o.cidade||'')+' · equipe '+esc(o.equipe||(o.responsavel||'—').split('@')[0])+' · concluída em '+esc(dt(o.concluido_em))+'</p>';
   h+='<div class="det"><div><div class="sec-t" style="margin-top:0">Compras aprovadas (custo)</div>'+(o.compras.length?'<table>'+o.compras.map(function(c){return '<tr><td>'+esc(c.finalidade)+'<div class="muted">'+esc(c.fornecedor||'')+'</div></td><td>'+chip(c.status,STC[c.status])+'</td><td class="num money">'+money(c.valor)+'</td></tr>';}).join('')+'<tr><td><b>Custo aprovado</b></td><td></td><td class="num money"><b>'+money(o.custo_aprovado)+'</b></td></tr></table>':'<p class="muted">Sem compras nesta OS.</p>')+(o.compras_pendentes>0?'<p class="note" style="color:var(--red2)">Há compra pendente de aprovação. O custo pode mudar.</p>':'');
   h+='<div class="sec-t">Proposta comercial apresentada ao cliente</div><dl class="kv"><dt>Valor da proposta</dt><dd class="money">'+(o.valor_proposta!=null?'<b>'+money(o.valor_proposta)+'</b>':'<span class="muted">não informado</span>')+(ed?' <button class="btn sec sm" onclick="A.osValorProposta()">Informar</button>':'')+(ed&&o.valor_proposta?' <button class="btn sec sm" onclick="A.osUsarProposta()">Usar como valor a cobrar</button>':'')+'</dd></dl>'+docsHtml(o.docs||[])+(ed?'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px">'+sel('k-dtipo',[['proposta','Proposta comercial'],['contrato','Contrato'],['outro','Outro']],'proposta')+'<input id="k-dfile" type="file" accept=".pdf,image/*"><button class="btn sm" onclick="A.uploadDoc(&quot;chamado&quot;,&quot;'+o.id+'&quot;)">Enviar</button></div>':'');
   h+='<div class="sec-t">Valores a cobrar '+(ed?'<span class="sp"></span><button class="btn sec sm" onclick="A.osAddItem()">+ Item</button>':'')+'</div><table id="os-itens"><tr><th>Descrição</th><th class="num">Qtd</th><th class="num">Valor unit.</th><th class="num">Total</th><th></th></tr>'+
@@ -426,6 +433,30 @@ async function abrirCliente(id){
 function lerFormCliente(){var cats=[].slice.call(document.querySelectorAll('.x-cat:checked')).map(function(x){return x.value;});
   return {nome:val('x-nome'),nome_fantasia:val('x-fant')||null,codigo_monitoramento:val('x-cod')||null,categorias:cats,tipo:val('x-tipo')||null,pessoa:val('x-pessoa')||null,cpf_cnpj:val('x-doc')||null,rg_ie:val('x-rgie')||null,telefones:val('x-tel')||null,email:val('x-email')||null,contato:val('x-contato')||null,relatorio_email:val('x-rel')||null,endereco:val('x-end')||null,numero:val('x-num')||null,bairro:val('x-bairro')||null,cep:val('x-cep')||null,cidade:val('x-cid')||null,uf:val('x-uf')||null,sim_card:val('x-sim')||null,tel_sim:val('x-telsim')||null,sim_card2:val('x-sim2')||null,tel_sim2:val('x-telsim2')||null,observacoes:val('x-obs')||null};}
 
+// ---------- CADASTRO DE FUNCIONÁRIOS ----------
+async function loadFuncionarios(){
+  el('main').innerHTML='<div class="muted">Carregando…</div>';
+  var r=await sb.from('funcionarios').select('*').order('nome');if(r.error)throw r.error;S.funcionarios=r.data;S.funcAtivos=r.data.filter(function(f){return f.ativo;});
+  var adm=isAdmin();var L=S.funcionarios.filter(function(f){return S.cfAtivo==='nao'?!f.ativo:(S.cfAtivo===''?true:f.ativo);});
+  var h='<div class="hd"><h1>Funcionários <span class="muted">'+L.length+'</span></h1><span class="sp"></span>'+(adm?'<button class="btn" onclick="A.novoFunc()">+ Novo funcionário</button>':'')+'</div><div class="filters">'+sel('ff-at',[['sim','Ativos'],['nao','Inativos'],['','Todos']],S.cfAtivo||'sim',' onchange="S.cfAtivo=this.value;loadFuncionarios().catch(fail)"')+'</div>'+
+  '<div class="panel">'+(L.length?'<table><tr><th>Nome</th><th>Função</th><th>Telefone</th><th>E-mail</th><th>Acesso à Mesa</th><th>Ativo</th></tr>'+L.map(function(f){return '<tr class="row" onclick="A.abrirFunc(&quot;'+f.id+'&quot;)"><td><b>'+esc(f.nome)+'</b></td><td>'+esc(f.funcao||'—')+'</td><td>'+esc(f.telefone||'—')+'</td><td>'+esc(f.email||'—')+'</td><td>'+esc(f.usuario_email||'—')+'</td><td>'+(f.ativo?'sim':chip('descartado','inativo'))+'</td></tr>';}).join('')+'</table>':'<div class="empty">Nenhum funcionário cadastrado.</div>')+'</div>';
+  el('main').innerHTML=h;
+}
+function formFunc(f){f=f||{ativo:true};var dis=isAdmin()?'':' disabled';
+  function fld(id,label,v,o){o=o||{};return '<div class="fld'+(o.full?' full':'')+'"><label>'+label+'</label><input id="'+id+'" value="'+esc(v||'')+'"'+dis+(o.type?' type="'+o.type+'"':'')+(o.ph?' placeholder="'+o.ph+'"':'')+'></div>';}
+  return '<div class="frm">'+fld('fu-nome','Nome *',f.nome,{full:true})+fld('fu-funcao','Função',f.funcao,{ph:'técnico, eletricista, instalador, atendimento…'})+fld('fu-tel','Telefone / WhatsApp',f.telefone)+fld('fu-email','E-mail',f.email,{type:'email'})+'<div class="fld"><label>Acesso à Mesa (e-mail de login)</label>'+sel('fu-user',[['','(não acessa a Mesa)']].concat(S.usuarios.map(function(u){return [u.email,u.nome||u.email];})),f.usuario_email||'',dis)+'</div>'+'<div class="fld full"><label>Observações</label><textarea id="fu-obs"'+dis+'>'+esc(f.observacoes||'')+'</textarea></div></div>';}
+async function abrirFunc(id){
+  await usuarios();var f=S.funcionarios.filter(function(x){return x.id===id;})[0];if(!f){var r=await sb.from('funcionarios').select('*').eq('id',id).single();if(r.error)throw r.error;f=r.data;}
+  var os=await sb.from('os_funcionarios').select('lead_id, leads!inner(id,nome,status,created_at,detalhes)').eq('funcionario_id',id).order('created_at',{ascending:false}).limit(20);
+  var adm=isAdmin();
+  var h='<h2>'+esc(f.nome)+(f.ativo?'':' '+chip('descartado','Inativo'))+'</h2><p class="muted">'+esc(f.funcao||'')+'</p>'+formFunc(f)+
+  '<div class="acts">'+(adm?'<button class="btn" onclick="A.salvarFunc(&quot;'+f.id+'&quot;)">Salvar</button><button class="btn sec" onclick="A.ativarFunc(&quot;'+f.id+'&quot;,'+(!f.ativo)+')">'+(f.ativo?'Inativar':'Reativar')+'</button>':'')+'</div>';
+  var L=(os.data||[]).map(function(x){return x.leads;}).filter(Boolean);
+  h+='<div class="sec-t">Ordens de serviço atribuídas</div>'+(L.length?'<table><tr><th>Data</th><th>Cliente</th><th>Serviço</th><th>Status</th></tr>'+L.map(function(l){return '<tr class="row" onclick="A.fechar();A.abrir(&quot;'+l.id+'&quot;)"><td>'+esc(dd(l.created_at))+'</td><td><b>'+esc(l.nome)+'</b></td><td>'+esc((l.detalhes&&l.detalhes.problema)||'')+'</td><td>'+chip(l.status,ST_CH[l.status]||l.status)+'</td></tr>';}).join('')+'</table>':'<p class="muted">Nenhuma OS atribuída.</p>');
+  modal(h);
+}
+function lerFormFunc(){return {nome:val('fu-nome'),funcao:val('fu-funcao')||null,telefone:val('fu-tel')||null,email:val('fu-email')||null,usuario_email:val('fu-user')||null,observacoes:val('fu-obs')||null};}
+
 // ---------- USUÁRIOS ----------
 async function loadUsuarios(){
   var r=await sb.from('usuarios').select('*').order('created_at');if(r.error)throw r.error;S.usuarios=r.data.filter(function(u){return u.ativo;});
@@ -457,9 +488,9 @@ window.A={
   fechar:function(){var m=el('modalbg');if(m)m.remove();},
   salvarChamado:async function(){try{var nome=val('c-nome'),wa=val('c-wa').replace(/\D/g,''),prob=val('c-prob');if(!nome)throw new Error('Informe o cliente.');if(wa.length<10)throw new Error('Informe um WhatsApp com DDD.');if(!prob)throw new Error('Descreva o problema ou serviço.');
     var r=await sb.from('leads').insert({tipo:'chamado',cliente_id:val('c-cliid')||null,divisao:val('c-div'),perfil:val('c-perf'),nome:nome,whatsapp:wa,email:val('c-email')||null,cidade:val('c-cid')||null,endereco:val('c-end')||null,detalhes:{problema:prob},pagina_origem:'mesa',criado_por:S.perfil.email,prioridade:val('c-pri'),responsavel:val('c-resp')||null,data_visita:val('c-vis')||null,consentimento_lgpd:true}).select('id').single();if(r.error)throw r.error;
-    await sb.from('lead_eventos').insert({lead_id:r.data.id,tipo:'sistema',texto:'Ordem de serviço aberta pela Mesa'});toast('Ordem de serviço aberta.');A.fechar();S.tipo='chamado';if(S.view!=='chamado')go('chamado');else loadLista().catch(fail);}catch(e){fail(e);}},
+    await sb.from('lead_eventos').insert({lead_id:r.data.id,tipo:'sistema',texto:'Ordem de serviço aberta pela Mesa'});var eq=equipeSel('c');if(eq.length)await salvarEquipe(r.data.id,eq,[]);toast('Ordem de serviço aberta.');A.fechar();S.tipo='chamado';if(S.view!=='chamado')go('chamado');else loadLista().catch(fail);}catch(e){fail(e);}},
   salvar:async function(){try{var l=S.lead;var up={status:val('d-st'),responsavel:val('d-resp')||null,prioridade:val('d-pri'),data_visita:val('d-vis')||null,observacoes:val('d-obs')||null,motivo_descarte:val('d-st')==='descartado'?(val('d-mot')||null):null};if(el('d-end'))up.endereco=val('d-end')||null;if(el('d-prop'))up.valor_proposta=val('d-prop')?num(val('d-prop')):null;
-    var r=await sb.from('leads').update(up).eq('id',l.id);if(r.error)throw r.error;toast(up.status==='concluido'&&l.status!=='concluido'?'OS concluída e enviada ao Financeiro.':'Salvo.');A.fechar();if(S.view==='dash')loadDash().catch(fail);else if(S.view==='fin')loadFin().catch(fail);else loadLista().catch(fail);}catch(e){fail(e);}},
+    var r=await sb.from('leads').update(up).eq('id',l.id);if(r.error)throw r.error;if(l.tipo==='chamado'&&el('d-eq'))await salvarEquipe(l.id,equipeSel('d'),S.leadEquipe||[]);toast(up.status==='concluido'&&l.status!=='concluido'?'OS concluída e enviada ao Financeiro.':'Salvo.');A.fechar();if(S.view==='dash')loadDash().catch(fail);else if(S.view==='fin')loadFin().catch(fail);else loadLista().catch(fail);}catch(e){fail(e);}},
   nota:async function(){try{var t=val('d-nota');if(!t)return;var r=await sb.from('lead_eventos').insert({lead_id:S.lead.id,tipo:'nota',texto:t});if(r.error)throw r.error;el('d-nota').value='';var e=await sb.from('lead_eventos').select('*').eq('lead_id',S.lead.id).order('created_at',{ascending:false});S.eventos=e.data||[];el('d-ev').innerHTML=eventosHtml(S.eventos);}catch(e){fail(e);}},
   contato:async function(){try{var l=S.lead;var up={ultimo_contato_em:new Date().toISOString()};if(l.status==='novo')up.status='em_contato';var r=await sb.from('leads').update(up).eq('id',l.id);if(r.error)throw r.error;
     await sb.from('lead_eventos').insert({lead_id:l.id,tipo:'contato',texto:'Contato realizado (WhatsApp/telefone)'});toast('Contato registrado.');abrir(l.id).catch(fail);}catch(e){fail(e);}},
@@ -511,6 +542,10 @@ window.A={
     await sb.from('lead_eventos').insert({lead_id:o.id,tipo:'sistema',texto:sem?'OS fechada pelo Financeiro sem cobrança ('+val('os-motivo')+')':'OS fechada pelo Financeiro: '+money(total)+' em '+(parseInt(val('os-n'),10)||1)+' parcela(s)'});
     toast(sem?'OS fechada sem cobrança.':'OS fechada e conta a receber gerada.');A.fechar();loadFin().catch(fail);}catch(e){fail(e);}},
   osReabrir:async function(){try{if(!confirm('Reabrir esta OS para o Financeiro? As contas a receber existentes não são apagadas.'))return;var r=await sb.from('leads').update({status:'concluido',fechado_em:null,fechado_por:null}).eq('id',S.os.id);if(r.error)throw r.error;toast('OS reaberta.');A.fechar();loadFin().catch(fail);}catch(e){fail(e);}},
+  novoFunc:async function(){await usuarios();modal('<h2>Novo funcionário</h2>'+formFunc(null)+'<div class="acts"><button class="btn" onclick="A.salvarFunc(null)">Cadastrar</button><button class="btn sec" onclick="A.fechar()">Cancelar</button></div>',true);},
+  abrirFunc:function(id){abrirFunc(id).catch(fail);},
+  salvarFunc:async function(id){try{var d=lerFormFunc();if(!d.nome)throw new Error('Informe o nome.');var r=id?await sb.from('funcionarios').update(d).eq('id',id):await sb.from('funcionarios').insert(d);if(r.error)throw r.error;toast('Funcionário salvo.');S.funcAtivos=[];A.fechar();loadFuncionarios().catch(fail);}catch(e){fail(e);}},
+  ativarFunc:async function(id,ativo){try{var r=await sb.from('funcionarios').update({ativo:ativo}).eq('id',id);if(r.error)throw r.error;toast(ativo?'Funcionário reativado.':'Funcionário inativado.');S.funcAtivos=[];A.fechar();loadFuncionarios().catch(fail);}catch(e){fail(e);}},
   cfiltro:function(){S.cf={q:val('cf-q'),cat:val('cf-cat'),ativo:val('cf-at')};renderClientes();var q=el('cf-q');if(q){q.focus();var v=q.value;q.value='';q.value=v;}},
   abrirCliente:function(id){abrirCliente(id).catch(fail);},
   novoCliente:function(){modal('<h2>Novo cliente</h2>'+formCliente(null)+'<div class="acts"><button class="btn" onclick="A.salvarCliente(null)">Cadastrar</button><button class="btn sec" onclick="A.fechar()">Cancelar</button></div>');},
