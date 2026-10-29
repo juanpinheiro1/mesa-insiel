@@ -199,7 +199,7 @@ function renderShell(){
   if(!tec)nav+='<span class="grp"><button id="nv-cad" onclick="go(&quot;clientes&quot;)">Cadastro ▾</button><span class="sub"><button id="nv-clientes" onclick="go(&quot;clientes&quot;)">Clientes</button><button id="nv-funcionarios" onclick="go(&quot;funcionarios&quot;)">Funcionários</button>'+(pp==='admin'?'<button id="nv-contasfin" onclick="go(&quot;contasfin&quot;)">Contas financeiras</button>':'')+'</span></span>';
   if(pp==='admin')nav+='<button id="nv-usuarios" onclick="go(&quot;usuarios&quot;)">Usuários</button>';
   el('app').innerHTML='<header class="topbar"><div class="wrap">'+brand()+'<nav>'+nav+'</nav>'+
-  '<span class="who">'+esc(S.perfil.nome||S.perfil.email)+' · '+esc(S.perfil.papel)+' · v7.6.1</span><button class="btn sec sm" onclick="A.sair()">Sair</button></div></header><main id="main"></main>';
+  '<span class="who">'+esc(S.perfil.nome||S.perfil.email)+' · '+esc(S.perfil.papel)+' · v7.7</span><button class="btn sec sm" onclick="A.sair()">Sair</button></div></header><main id="main"></main>';
 }
 function go(v){if(v==='chamado'&&isTec())v='agenda';S.view=v;A.tipOff();document.querySelectorAll('.topbar nav button').forEach(function(b){b.classList.toggle('on',b.id==='nv-'+v||(b.id==='nv-dash'&&(v==='dash'||v==='orcamento'||v==='contato'))||(b.id==='nv-dash2'&&v==='dash')||(v==='fin'&&b.id==='nv-fin-'+S.finTab)||(b.id==='nv-cad'&&(v==='clientes'||v==='funcionarios'||v==='contasfin'))||(b.id==='nv-chamado'&&(v==='chamado'||v==='oslista'||v==='instal')));});
   if(v==='dash')loadDash().catch(fail);else if(v==='usuarios')loadUsuarios().catch(fail);else if(v==='fin')loadFin().catch(fail);else if(v==='clientes')loadClientes().catch(fail);else if(v==='funcionarios')loadFuncionarios().catch(fail);else if(v==='contasfin')loadContasFin().catch(fail);else if(v==='chamado')loadPainel().catch(fail);else if(v==='instal')loadInstal().catch(fail);else if(v==='agenda')loadAgenda().catch(fail);else if(v==='oslista'){S.tipo='chamado';loadLista().catch(fail);}else{S.tipo=v;loadLista().catch(fail);}}
@@ -488,15 +488,27 @@ async function imprimirOS(id,w){
 }
 
 // ---------- FINANCEIRO ----------
-async function loadFin(){
-  el('main').innerHTML='<div class="muted">Carregando…</div>';
-  var a=await sb.from('v_compras').select('*').order('created_at',{ascending:false}).limit(500);if(a.error)throw a.error;S.compras=a.data;
-  var b=await sb.from('v_contas_pagar').select('*').order('vencimento');if(b.error)throw b.error;S.cp=b.data;await carregaDocsCp();
-  var c=await sb.from('v_contas_receber').select('*').order('vencimento',{ascending:true,nullsFirst:true});if(c.error)throw c.error;S.cr=c.data;await carregaDocsCr();await carregaBoletos();
-  var o=await sb.from('v_os').select('*').eq('status','concluido').order('concluido_em');if(o.error)throw o.error;S.osFin=o.data;
-  var ct=await sb.from('v_contratos').select('*').order('status').order('cliente_nome');if(ct.error)throw ct.error;S.ct=ct.data||[];var mon=await sb.from('v_clientes').select('id,nome,codigo_monitoramento,categorias').eq('ativo',true).contains('categorias',['monitorado']).order('nome');S.ctMon=mon.data||[];
-  await carregaCfin();if(isFin()){if(!S.lf.de){S.lf.de=today().slice(0,8)+'01';S.lf.ate=today();}var lf=await sb.from('v_lancamentos_fin').select('*').gte('data',S.lf.de).lte('data',S.lf.ate).order('data',{ascending:false}).order('created_at',{ascending:false}).limit(2000);if(lf.error)throw lf.error;S.lanc=lf.data||[];}
-  renderFin();
+// Financeiro: cada aba só carrega o que usa; consultas em paralelo; o que já foi carregado fica em cache até uma alteração (loadFin()) invalidar.
+var FIN_NEED={resumo:['cp','cr','compras','osFin','cfin'],compras:['compras','cfin'],receber:['cr','cfin'],pagar:['cp','cfin'],contratos:['ct'],folha:['cfin'],contas:['cfin','lanc']};
+S.finOk={};S.finLoading={};
+var FIN_LOAD={
+  compras:async function(){var a=await sb.from('v_compras').select('*').order('created_at',{ascending:false}).limit(500);if(a.error)throw a.error;S.compras=a.data||[];},
+  cp:async function(){var b=await sb.from('v_contas_pagar').select('*').order('vencimento');if(b.error)throw b.error;S.cp=b.data||[];await carregaDocsCp();},
+  cr:async function(){var c=await sb.from('v_contas_receber').select('*').order('vencimento',{ascending:true,nullsFirst:true});if(c.error)throw c.error;S.cr=c.data||[];await Promise.all([carregaDocsCr(),carregaBoletos()]);},
+  osFin:async function(){var o=await sb.from('v_os').select('*').eq('status','concluido').order('concluido_em');if(o.error)throw o.error;S.osFin=o.data||[];},
+  ct:async function(){var r=await Promise.all([sb.from('v_contratos').select('*').order('status').order('cliente_nome'),sb.from('v_clientes').select('id,nome,codigo_monitoramento,categorias').eq('ativo',true).contains('categorias',['monitorado']).order('nome')]);if(r[0].error)throw r[0].error;S.ct=r[0].data||[];S.ctMon=r[1].data||[];},
+  cfin:async function(){await carregaCfin();},
+  lanc:async function(){if(!isFin()){S.lanc=[];return;}if(!S.lf.de){S.lf.de=today().slice(0,8)+'01';S.lf.ate=today();}var lf=await sb.from('v_lancamentos_fin').select('*').gte('data',S.lf.de).lte('data',S.lf.ate).order('data',{ascending:false}).order('created_at',{ascending:false}).limit(2000);if(lf.error)throw lf.error;S.lanc=lf.data||[];}
+};
+async function finCarregar(keys,forcar){var ks=keys.filter(function(k){return FIN_LOAD[k]&&(forcar||!S.finOk[k]);});if(!ks.length)return;
+  await Promise.all(ks.map(function(k){if(!S.finLoading[k]){S.finLoading[k]=FIN_LOAD[k]().then(function(){S.finOk[k]=true;}).finally(function(){delete S.finLoading[k];});}return S.finLoading[k];}));}
+// loadFin(): após uma alteração, recarrega a aba atual e invalida as demais (serão lidas de novo ao abrir). loadFin(false): só completa o que falta para a aba atual.
+async function loadFin(forcar){if(forcar===undefined)forcar=true;var t=S.finTab||'resumo';var need=FIN_NEED[t]||[];
+  if(forcar)S.finOk={};
+  var faltam=need.filter(function(k){return !S.finOk[k];});
+  if(faltam.length&&(!el('main').innerHTML||S.view!=='fin'||!document.querySelector('.tabs')))el('main').innerHTML='<div class="muted">Carregando…</div>';
+  if(t==='resumo'&&faltam.length){await finCarregar(['cp','cfin'],forcar);renderFin();await finCarregar(['cr','compras','osFin'],forcar);renderFin();return;}
+  await finCarregar(need,forcar);renderFin();
 }
 function renderFin(){
   var t=S.finTab;
@@ -564,24 +576,25 @@ function formCfin(c){c=c||{tipo:'banco',organizacao:'brasil_comercial',abertura:
 function lerFormCfin(){return {nome:val('cf-nome'),tipo:val('cf-tipo'),organizacao:val('cf-org'),banco:val('cf-banco')||null,agencia:val('cf-ag')||null,conta:val('cf-conta')||null,pix:val('cf-pix')||null,abertura:val('cf-abert'),saldo_inicial:num(val('cf-saldo'))||0,ordem:parseInt(val('cf-ordem'),10)||0,ativa:el('cf-ativa').checked,padrao:el('cf-padrao').checked,recebe_boleto:el('cf-bol').checked,recebe_cartao:el('cf-cart').checked,observacoes:val('cf-obs')||null,atualizado_em:new Date().toISOString()};}
 function finResumo(){
   var d7=ymd(new Date(Date.now()+7*864e5)),d30=ymd(new Date(Date.now()+30*864e5)),mes=today().slice(0,7);
-  var cpAb=S.cp.filter(function(r){return r.status==='pendente';}),crAb=S.cr.filter(function(r){return r.status==='aberto';}),crDef=S.cr.filter(function(r){return r.status==='a_definir';});
+  var CR=S.cr||[],CP=S.cp||[],CM=S.compras||[],okR=!!S.finOk.cr,okC=!!S.finOk.compras,okO=!!S.finOk.osFin;function kv(ok,v){return ok?v:'<span class="muted">…</span>';}
+  var cpAb=CP.filter(function(r){return r.status==='pendente';}),crAb=CR.filter(function(r){return r.status==='aberto';}),crDef=CR.filter(function(r){return r.status==='a_definir';});
   var h='<div class="kpis">'+
-  '<div class="kpi red" onclick="document.getElementById(&quot;os-fin&quot;).scrollIntoView({behavior:&quot;smooth&quot;})"><b>'+(S.osFin||[]).length+'</b><span>OS a finalizar</span></div>'+
-  '<div class="kpi ok" onclick="A.finTab(&quot;receber&quot;)"><b class="money">'+money(sum(crAb,function(){return true;}))+'</b><span>A receber em aberto ('+crAb.length+')</span></div>'+
-  '<div class="kpi" onclick="A.finTab(&quot;receber&quot;)"><b class="money">'+money(sum(S.cr,function(r){return r.status==='pago'&&String(r.pago_em||'').slice(0,7)===mes;}))+'</b><span>Recebido no mês</span></div>'+
+  '<div class="kpi red" onclick="document.getElementById(&quot;os-fin&quot;).scrollIntoView({behavior:&quot;smooth&quot;})"><b>'+kv(okO,String((S.osFin||[]).length))+'</b><span>OS a finalizar</span></div>'+
+  '<div class="kpi ok" onclick="A.finTab(&quot;receber&quot;)"><b class="money">'+kv(okR,money(sum(crAb,function(){return true;})))+'</b><span>A receber em aberto'+(okR?' ('+crAb.length+')':'')+'</span></div>'+
+  '<div class="kpi" onclick="A.finTab(&quot;receber&quot;)"><b class="money">'+kv(okR,money(sum(CR,function(r){return r.status==='pago'&&String(r.pago_em||'').slice(0,7)===mes;})))+'</b><span>Recebido no mês</span></div>'+
   
   '<div class="kpi red" onclick="A.finTab(&quot;pagar&quot;)"><b class="money">'+money(sum(cpAb,function(r){return r.vencimento<today();}))+'</b><span>A pagar atrasado ('+cpAb.filter(function(r){return r.vencimento<today();}).length+')</span></div>'+
   '<div class="kpi warn" onclick="A.finTab(&quot;pagar&quot;)"><b class="money">'+money(sum(cpAb,function(r){return r.vencimento>=today()&&r.vencimento<=d7;}))+'</b><span>A pagar em 7 dias</span></div>'+
   '<div class="kpi" onclick="A.finTab(&quot;pagar&quot;)"><b class="money">'+money(sum(cpAb,function(r){return r.vencimento>=today()&&r.vencimento<=d30;}))+'</b><span>A pagar em 30 dias</span></div>'+
-  '<div class="kpi warn" onclick="A.finTab(&quot;compras&quot;)"><b>'+S.compras.filter(function(c){return c.status==='pendente';}).length+'</b><span>Compras aguardando aprovação</span></div>'+
-  '<div class="kpi" onclick="A.finTab(&quot;compras&quot;)"><b>'+S.compras.filter(function(c){return c.status==='aprovada'&&(!c.tem_nf||!c.n_parcelas);}).length+'</b><span>Compras aprovadas sem NF ou parcelas</span></div></div>';
+  '<div class="kpi warn" onclick="A.finTab(&quot;compras&quot;)"><b>'+kv(okC,String(CM.filter(function(c){return c.status==='pendente';}).length))+'</b><span>Compras aguardando aprovação</span></div>'+
+  '<div class="kpi" onclick="A.finTab(&quot;compras&quot;)"><b>'+kv(okC,String(CM.filter(function(c){return c.status==='aprovada'&&(!c.tem_nf||!c.n_parcelas);}).length))+'</b><span>Compras aprovadas sem NF ou parcelas</span></div></div>';
   var OF=S.osFin||[];
-  h+='<div class="panel" id="os-fin"><h2>O.S. a finalizar <span class="muted">concluídas pela equipe técnica, aguardando fechamento do Financeiro</span></h2>'+(OF.length?'<table><tr><th>Concluída em</th><th>Cliente</th><th>Serviço</th><th>Técnico</th><th class="num">Custo compras</th><th class="num">Itens lançados</th><th></th></tr>'+OF.map(function(o){return '<tr class="row" onclick="A.fecharOS(&quot;'+o.id+'&quot;)"><td>'+esc(dd(o.concluido_em||o.created_at))+'<div class="muted">'+esc((o.concluido_por||'').split('@')[0])+'</div></td><td><span class="chip seguranca">'+osn(o.numero_os)+'</span> <b>'+esc(o.nome)+'</b><div class="muted">'+esc(o.cidade||'')+'</div></td><td>'+esc((o.detalhes&&o.detalhes.problema)||'')+'</td><td>'+esc(o.equipe||(o.responsavel||'—').split('@')[0])+'</td><td class="num money">'+money(o.custo_aprovado)+(o.compras_pendentes>0?' '+chip('pendente',o.compras_pendentes+' compra(s) pendente(s)'):'')+'</td><td class="num money">'+money(o.total_itens)+'</td><td>'+(isFin()?'<button class="btn sm" onclick="event.stopPropagation();A.fecharOS(&quot;'+o.id+'&quot;)">Finalizar</button>':'')+'</td></tr>';}).join('')+'</table>':'<div class="empty">Nenhuma OS aguardando fechamento.</div>')+'</div>';
-  var pend=S.compras.filter(function(c){return c.status==='pendente';});
-  h+='<div class="panel"><h2>Compras aguardando aprovação'+(isAdmin()?'':' <span class="muted">(aprovação é do administrador)</span>')+'</h2>'+(pend.length?tabCompras(pend):'<div class="empty">Nenhuma.</div>')+'</div>';
+  h+='<div class="panel" id="os-fin"><h2>O.S. a finalizar <span class="muted">concluídas pela equipe técnica, aguardando fechamento do Financeiro</span></h2>'+(!okO?'<div class="muted">Carregando…</div>':OF.length?'<table><tr><th>Concluída em</th><th>Cliente</th><th>Serviço</th><th>Técnico</th><th class="num">Custo compras</th><th class="num">Itens lançados</th><th></th></tr>'+OF.map(function(o){return '<tr class="row" onclick="A.fecharOS(&quot;'+o.id+'&quot;)"><td>'+esc(dd(o.concluido_em||o.created_at))+'<div class="muted">'+esc((o.concluido_por||'').split('@')[0])+'</div></td><td><span class="chip seguranca">'+osn(o.numero_os)+'</span> <b>'+esc(o.nome)+'</b><div class="muted">'+esc(o.cidade||'')+'</div></td><td>'+esc((o.detalhes&&o.detalhes.problema)||'')+'</td><td>'+esc(o.equipe||(o.responsavel||'—').split('@')[0])+'</td><td class="num money">'+money(o.custo_aprovado)+(o.compras_pendentes>0?' '+chip('pendente',o.compras_pendentes+' compra(s) pendente(s)'):'')+'</td><td class="num money">'+money(o.total_itens)+'</td><td>'+(isFin()?'<button class="btn sm" onclick="event.stopPropagation();A.fecharOS(&quot;'+o.id+'&quot;)">Finalizar</button>':'')+'</td></tr>';}).join('')+'</table>':'<div class="empty">Nenhuma OS aguardando fechamento.</div>')+'</div>';
+  var pend=CM.filter(function(c){return c.status==='pendente';});
+  h+='<div class="panel"><h2>Compras aguardando aprovação'+(isAdmin()?'':' <span class="muted">(aprovação é do administrador)</span>')+'</h2>'+(!okC?'<div class="muted">Carregando…</div>':pend.length?tabCompras(pend):'<div class="empty">Nenhuma.</div>')+'</div>';
   var prox=cpAb.filter(function(r){return r.vencimento<=d7;});
   h+='<div class="panel"><h2>A pagar: atrasados e próximos 7 dias</h2>'+(prox.length?tabPagar(prox):'<div class="empty">Nada vencendo.</div>')+'</div>';
-  h+='<div class="panel"><h2>A receber: a definir e vencidos</h2>'+(crDef.length||crAb.filter(atras).length?tabReceber(crDef.concat(crAb.filter(atras))):'<div class="empty">Nada pendente.</div>')+'</div>';
+  h+='<div class="panel"><h2>A receber: a definir e vencidos</h2>'+(!okR?'<div class="muted">Carregando…</div>':crDef.length||crAb.filter(atras).length?tabReceber(crDef.concat(crAb.filter(atras))):'<div class="empty">Nada pendente.</div>')+'</div>';
   return h;
 }
 function finCompras(){var f=S.ff;var L=S.compras.filter(function(c){return (!f.status||c.status===f.status)&&(!f.q||(c.finalidade+' '+c.fornecedor+' '+c.chamado_nome).toLowerCase().indexOf(f.q.toLowerCase())>-1);});
@@ -653,8 +666,8 @@ var SVG_DOC='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 
 var SVG_CPV='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3H5a2 2 0 0 0-2 2v16l3-2 3 2 3-2 3 2 3-2 3 2V5a2 2 0 0 0-2-2zm-8.6 12.4-3.3-3.3 1.4-1.4 1.9 1.9 4.6-4.6 1.4 1.4-6 6z"/></svg>';
 S.cpDocs={};
 async function carregaDocsCp(){var ids=S.cp.map(function(r){return r.id;}),cids=S.cp.filter(function(r){return r.compra_id;}).map(function(r){return r.compra_id;});var m={};
-  if(ids.length){var a=await sb.from('documentos').select('*').eq('entidade','conta_pagar').in('entidade_id',ids).order('created_at');(a.data||[]).forEach(function(d){(m[d.entidade_id]=m[d.entidade_id]||[]).push(d);});}
-  if(cids.length){var b=await sb.from('documentos').select('*').eq('entidade','compra').in('entidade_id',cids).order('created_at');(b.data||[]).forEach(function(d){(m[d.entidade_id]=m[d.entidade_id]||[]).push(d);});}
+  var rr=await Promise.all([ids.length?sb.from('documentos').select('*').eq('entidade','conta_pagar').in('entidade_id',ids).order('created_at'):{data:[]},cids.length?sb.from('documentos').select('*').eq('entidade','compra').in('entidade_id',cids).order('created_at'):{data:[]}]);
+  (rr[0].data||[]).forEach(function(d){(m[d.entidade_id]=m[d.entidade_id]||[]).push(d);});(rr[1].data||[]).forEach(function(d){(m[d.entidade_id]=m[d.entidade_id]||[]).push(d);});
   S.cpDocs=m;}
 async function carregaDocsOS(ids){S.osDocs={};if(!ids.length)return;var a=await sb.from('documentos').select('*').eq('entidade','chamado').in('entidade_id',ids).order('created_at');(a.data||[]).forEach(function(d){(S.osDocs[d.entidade_id]=S.osDocs[d.entidade_id]||[]).push(d);});
   var c=await sb.from('compras').select('id,chamado_id,finalidade').in('chamado_id',ids);var cm={};(c.data||[]).forEach(function(x){cm[x.id]=x;});var cids=Object.keys(cm);
@@ -668,7 +681,7 @@ var SVG_CART='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a2 2 0 1
 // ---------- BOLETOS SICREDI ----------
 var STBOL={registrado:'Registrado',pago:'Pago',baixado:'Baixado',erro:'Erro'};
 S.crBol={};
-async function carregaBoletos(){S.crBol={};var ids=S.cr.map(function(r){return r.id;});if(!ids.length)return;var b=await sb.from('v_boleto_ativo').select('*').in('conta_receber_id',ids);(b.data||[]).forEach(function(x){S.crBol[x.conta_receber_id]=x;});}
+async function carregaBoletos(){S.crBol={};var ids=S.cr.map(function(r){return r.id;});if(!ids.length)return;var b=await sb.from('v_boleto_ativo').select('id,conta_receber_id,ambiente,nosso_numero,linha_digitavel,status,vencimento,valor,pago_em').in('conta_receber_id',ids);(b.data||[]).forEach(function(x){S.crBol[x.conta_receber_id]=x;});}
 async function sicredi(body){var r=await sb.functions.invoke('insiel-sicredi',{body:body});if(r.error){var msg=r.error.message||'erro';try{var j=await r.error.context.json();if(j&&j.erro)msg=j.erro;}catch(x){}throw new Error(msg);}if(r.data&&r.data.ok===false)throw new Error(r.data.erro||'erro');return r.data;}
 function boletoCel(r){var b=S.crBol[r.id];if(!b)return '<span class="muted">—</span>';var c=b.linha_digitavel||'';var curto=c.length>28?c.slice(0,14)+'…'+c.slice(-10):c;return chip(b.status,STBOL[b.status]||b.status)+(b.ambiente==='sandbox'?' '+chip('sbx','teste'):'')+(c?'<div class="cod"><code title="'+esc(c)+'">'+esc(curto)+'</code><button class="cpb nova" title="Copiar linha digitável" onclick="event.stopPropagation();copiarTexto(&quot;'+esc(c)+'&quot;).then(function(){toast(&quot;Linha digitável copiada.&quot;);})">'+SVG_COPY+'</button></div>':'');}
 function boletoSecao(r){var fin=isFin();var b=r.boleto;var h='<div class="sec-t">Boleto Sicredi</div>';
@@ -679,9 +692,10 @@ function boletoSecao(r){var fin=isFin();var b=r.boleto;var h='<div class="sec-t"
   if(hist.length||errs.length)h+='<p class="note">'+(hist.length?'Outros boletos desta parcela: '+hist.map(function(x){return esc(x.nosso_numero||'')+' · '+(STBOL[x.status]||x.status);}).join(' | '):'')+(errs.length?(hist.length?' · ':'')+errs.length+' tentativa(s) com erro, última em '+esc(dt(errs[0].created_at))+': '+esc((errs[0].erro||'').slice(0,160)):'')+'</p>';
   return h;}
 async function carregaDocsCr(){var ids=S.cr.map(function(r){return r.id;}),oids=[];S.cr.forEach(function(r){if(r.chamado_id&&oids.indexOf(r.chamado_id)<0)oids.push(r.chamado_id);});var m={};
-  if(ids.length){var a=await sb.from('documentos').select('*').eq('entidade','conta_receber').in('entidade_id',ids).order('created_at');(a.data||[]).forEach(function(d){(m[d.entidade_id]=m[d.entidade_id]||[]).push(d);});}
-  if(oids.length){var b=await sb.from('documentos').select('*').eq('entidade','chamado').in('entidade_id',oids).order('created_at');var porOs={};(b.data||[]).forEach(function(d){(porOs[d.entidade_id]=porOs[d.entidade_id]||[]).push(d);});S.cr.forEach(function(r){if(r.chamado_id&&porOs[r.chamado_id])m[r.id]=(m[r.id]||[]).concat(porOs[r.chamado_id].map(function(d){var x=Object.assign({},d);x.origem_os=osn(r.chamado_numero);return x;}));});}
-  Object.keys(m).forEach(function(k){S.cpDocs[k]=m[k];});S.crDocs=m;}
+  var rr=await Promise.all([ids.length?sb.from('documentos').select('*').eq('entidade','conta_receber').in('entidade_id',ids).order('created_at'):{data:[]},oids.length?sb.from('documentos').select('*').eq('entidade','chamado').in('entidade_id',oids).order('created_at'):{data:[]}]);var a=rr[0],b=rr[1];
+  (a.data||[]).forEach(function(d){(m[d.entidade_id]=m[d.entidade_id]||[]).push(d);});
+  if(oids.length){var porOs={};(b.data||[]).forEach(function(d){(porOs[d.entidade_id]=porOs[d.entidade_id]||[]).push(d);});S.cr.forEach(function(r){if(r.chamado_id&&porOs[r.chamado_id])m[r.id]=(m[r.id]||[]).concat(porOs[r.chamado_id].map(function(d){var x=Object.assign({},d);x.origem_os=osn(r.chamado_numero);return x;}));});}
+  S.cpDocs=S.cpDocs||{};Object.keys(m).forEach(function(k){S.cpDocs[k]=m[k];});S.crDocs=m;}
 function crDocIcons(r){var D=(S.crDocs||{})[r.id]||[];if(!D.length)return '<span class="muted">—</span>';var cp=D.filter(function(d){return d.tipo==='comprovante';}),ou=D.filter(function(d){return d.tipo!=='comprovante';});var h='';
   if(ou.length)h+='<button class="dic" title="'+ou.length+' documento(s): '+esc(ou.map(function(d){return (DOCT[d.tipo]||d.tipo)+(d.origem_os?' ('+d.origem_os+')':'');}).join(', '))+'" onclick="event.stopPropagation();A.verDocs(&quot;'+r.id+'&quot;,&quot;docs&quot;)">'+SVG_DOC+'</button>';
   if(cp.length)h+='<button class="dic cpv" title="Comprovante de recebimento anexado ('+cp.length+')" onclick="event.stopPropagation();A.verDocs(&quot;'+r.id+'&quot;,&quot;comprovante&quot;)">'+SVG_CPV+'</button>';
@@ -1016,7 +1030,7 @@ window.A={
   cfinNova:function(){modal('<h2>Nova conta financeira</h2>'+formCfin(null)+'<div class="acts"><button class="btn" onclick="A.cfinSalvar(null)">Cadastrar</button><button class="btn sec" onclick="A.fechar()">Cancelar</button></div>',true);},
   cfinAbrir:function(id){if(!isAdmin())return;var c=(S.cfin||[]).filter(function(x){return x.id===id;})[0];if(!c)return;modal('<h2>'+esc(c.nome)+' <span class="muted" style="font-size:14px">saldo atual '+money(c.saldo)+' · '+c.n_lanc+' lançamento(s)</span></h2>'+formCfin(c)+'<p class="note">Mudar a abertura ou o saldo inicial recalcula o saldo atual; os lançamentos não mudam.</p><div class="acts"><button class="btn" onclick="A.cfinSalvar(&quot;'+c.id+'&quot;)">Salvar</button><button class="btn sec" onclick="A.fechar()">Cancelar</button></div>',true);},
   cfinSalvar:async function(id){try{var d=lerFormCfin();if(!d.nome)throw new Error('Informe o nome.');if(!d.abertura)throw new Error('Informe a data de abertura.');var r=id?await sb.from('contas_financeiras').update(d).eq('id',id):await sb.from('contas_financeiras').insert(d);if(r.error)throw r.error;toast('Conta salva.');A.fechar();loadContasFin().catch(fail);}catch(e){fail(e);}},
-  finTab:function(t){S.finTab=t;S.ff=ffPadrao(t);renderFin();document.querySelectorAll('.topbar nav button').forEach(function(b){if(b.id.indexOf('nv-fin-')===0)b.classList.toggle('on',b.id==='nv-fin-'+t);});},
+  finTab:function(t){S.finTab=t;S.ff=ffPadrao(t);loadFin(false).catch(fail);document.querySelectorAll('.topbar nav button').forEach(function(b){if(b.id.indexOf('nv-fin-')===0)b.classList.toggle('on',b.id==='nv-fin-'+t);});},
   ffiltro:function(src){var novo={q:val('ff-q'),status:val('ff-st'),org:val('ff-org'),per:val('ff-per'),de:val('ff-de'),ate:val('ff-ate')};if(src==='per'&&novo.per&&novo.status==='hoje')novo.status='';if(src==='st'&&novo.status==='hoje')novo.per='';S.ff=novo;renderFin();if(src==='per'&&novo.per==='custom'){var d=el('ff-de');if(d)d.focus();return;}var q=el('ff-q');if(q){q.focus();var v=q.value;q.value='';q.value=v;}},
   filtro:function(){S.f={q:val('f-q'),divisao:val('f-div'),status:val('f-st'),perfil:val('f-perf'),nat:val('f-nat')};renderLista();el('f-q').focus();var v=el('f-q').value;el('f-q').value='';el('f-q').value=v;},
   limparFiltro:function(){S.f={divisao:'',status:'',perfil:'',q:'',nat:''};renderLista();},
